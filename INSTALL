@@ -1,0 +1,17 @@
+Requirements:
+=============
+
+- apt-get install ruby-dev
+- apt-get install rubygems
+- apt-get install curl
+- gem install jsonpretty
+
+Config:
+=======
+
+~/.bashrc:
+----------
+
+... (append) ...
+PATH=$PATH:/var/lib/gems/1.8/bin
+export PATH
