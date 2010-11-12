@@ -282,7 +282,7 @@ function repos2branches() {
       mkdir -p "${RUN_DIR}/log/repos/branches/`dirname ${reponame}`" &> /dev/null
       touch "${RUN_DIR}/log/repos/branches/${reponame}"
       echo "Extracting branches for: " $reponame
-      grep -v "[{}]" branches | sed -e 's/^ *"//' | sed -e 's/": *.*//' > "${RUN_DIR}/log/repos/branches/${reponame}"
+      grep -v "[{}]" "${RAW_FILE}" | sed -e 's/^ *"//' | sed -e 's/": *.*//' > "${RUN_DIR}/log/repos/branches/${reponame}"
       echo $reponame >> "${RUN_DIR}/log/repos/branches/done"
     else
       echo "Already got branches: $reponame (skipping)"
@@ -301,7 +301,7 @@ function branches2commits() {
       mkdir -p "${RUN_DIR}/raw/commits/list/${reponame}" &> /dev/null
       cat "${RUN_DIR}/log/repos/branches/${reponame}" | while read branchname
       do
-        if [`grep "^${reponame}/${branchname}$" "${RUN_DIR}/log/commits/done" | wc -l` -eq 0 ]
+        if [ `grep "^${reponame}/${branchname}$" "${RUN_DIR}/log/commits/done" | wc -l` -eq 0 ]
         then
           RAW_FILE="${RUN_DIR}/raw/commits/list/${reponame}/${branchname}"
           mkdir -p "`dirname "${RAW_FILE}"`" &> /dev/null
