@@ -11,14 +11,15 @@ db = conn.raw
 
 def import_raw():
 	to_run = [
-				["raw/user/search/", user_search],
-				["raw/user/geocode/", user_geocode]
+				["/home/cs448b/gothub/raw/user/search/", user_search],
+				["/home/cs448b/gothub/raw/user/geocode/", user_geocode]
 			]
 	for proc in to_run:
-		print "Processing: " + dir
+		print "Processing: " + str(proc[0])
 		process_dir(proc[0], proc[1])
 		
-	commit_dir = "raw/commits/list/"
+	print "Processing commits"
+	commit_dir = "/home/cs448b/gothub/raw/commits/list/"
 	users = os.listdir(commit_dir)
 	for user in users:
 		user_dir = commit_dir + "/" + user
@@ -27,7 +28,8 @@ def import_raw():
 			proj_dir = user_dir + "/" + proj
 			process_dir(proj_dir, commits_list)
 
-	repos_dir = "raw/repos/show/"
+	print "Processing repos"
+	repos_dir = "/home/cs448b/gothub/raw/repos/show/"
 	users = os.listdir(repos_dir)
 	for user in users:
 		user_dir = repos_dir + '/' + user
@@ -47,7 +49,7 @@ def process_dir(dir, func):
 	for fname in files:
 		ctr = ctr + 1
 		if ctr % 1000 == 0:
-			print "Processed: " + ctr
+			print "Processed: " + str(ctr)
 		try:
 			file_path = dir + "/" + fname
 			f = open(file_path, "r")
