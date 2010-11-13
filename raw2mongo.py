@@ -23,10 +23,13 @@ def import_raw():
 	users = os.listdir(commit_dir)
 	for user in users:
 		user_dir = commit_dir + "/" + user
-		projs = os.listdir(user_dir)
-		for proj in projs:
-			proj_dir = user_dir + "/" + proj
-			process_dir(proj_dir, commits_list)
+		try:
+			projs = os.listdir(user_dir)
+			for proj in projs:
+				proj_dir = user_dir + "/" + proj
+				process_dir(proj_dir, commits_list)
+		except:
+			pass
 
 	print "Processing repos"
 	repos_dir = "/home/cs448b/gothub/raw/repos/show/"
