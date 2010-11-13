@@ -11,7 +11,7 @@ def main():
 	usage = "usage: %prog [options]"
 	parser = optparse.OptionParser(usage)
 	parser.add_option("-u", "--user", dest="user_name", action="store", type="string", help="username")
-	parser.add_options("-r", "--repo", dest="repo_name", action="store", type="string", help="repo name")
+	parser.add_option("-r", "--repo", dest="repo_name", action="store", type="string", help="repo name")
 	parser.add_option("--geocode", action="store_true", dest="geocode")
 	parser.add_option("--user-search", action="store_true", dest="user_search")
 	parser.add_option("--commits", action="store_true", dest="commits")
