@@ -201,3 +201,5 @@ class CommitJSONBuilder:
 
 if __name__ == "__main__":
     CommitJSONBuilder()
+
+# vim: tabstop=4 expandtab shiftwidth=4 softtabstop=4

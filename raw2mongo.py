@@ -94,3 +94,5 @@ def repos_show(path, obj):
 
 if __name__ == '__main__':
 	import_raw()
+
+# vim: tabstop=4 expandtab shiftwidth=4 softtabstop=4
