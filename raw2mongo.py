@@ -57,15 +57,15 @@ def import_raw():
 		
 	
 	
-def process_dir(dir, func):
-	files = os.listdir(dir)
+def process_dir(direc, func):
+	files = os.listdir(direc)
 	ctr = 0
 	for fname in files:
 		ctr = ctr + 1
 		if ctr % 1000 == 0:
 			print "Processed: " + str(ctr)
 		try:
-			file_path = dir + "/" + fname
+			file_path = direc + "/" + fname
 			f = open(file_path, "r")
 			jsonstr = f.read()
 			f.close()
@@ -104,7 +104,7 @@ def repos_show(path, obj):
 	repo_name = spl[-2]
 	owner = spl[-3]
 	key = obj.keys()[0]
-	existing = db.repos.find({"name" : repo_name, "owner" : owner})
+	existing = db.repos.find_one({"name" : repo_name, "owner" : owner})
 	if existing:
 		db.repos.update({"name": repo_name, "owner" : owner}, {"$set" : {key : obj[key]}})
 	else:
