@@ -2,6 +2,6 @@
 
 RUN_DIR=`echo $(dirname $0)`
 
-. "${RUN_DIR}/lib.sh"
+. "${RUN_DIR}/crawler_tasks.sh"
 
 repos2branches
