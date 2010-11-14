@@ -1,0 +1,19 @@
+{
+  "users": [
+    {
+      "name": "EVANTEST",
+      "location": "Cluj-Napoca/Romania",
+      "followers": 0,
+      "username": "alinpopa",
+      "fullname": "",
+      "language": "Java",
+      "repos": 4,
+      "id": "user-7199",
+      "type": "user",
+      "pushed": "2010-11-01T08:15:08.312Z",
+      "score": 4.8984222,
+      "created": "2008-04-14T08:10:21Z",
+      "record": null
+    }
+  ]
+}
