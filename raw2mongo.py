@@ -10,17 +10,27 @@ conn = pymongo.Connection()
 db = conn.raw
 queue = conn.queue
 
-#WARNING: THIS WILL DELETE ALL DATA IN RAW
-db.users.drop()
-db.commits.drop()
-db.repos.drop()
-queue.users.drop()
-queue.repos.drop()
-queue.commits.drop()
-db.users.ensure_index("name", pymongo.ASCENDING)
-db.repos.ensure_index([("owner", pymongo.ASCENDING), ("name", pymongo.ASCENDING)])
 
 def import_raw():
+	
+	usage = "usage: %prog [options]"
+	parser = optparse.OptionParser(usage)
+	parser.add_option("-d", "--drop", dest="should_drop", 
+		action="store_true", help="drop existing collections")
+	
+	options, args = parser.parse_args()
+	
+	if options.should_drop:
+		db.users.drop()
+		db.commits.drop()
+		db.repos.drop()
+		queue.users.drop()
+		queue.repos.drop()
+		queue.commits.drop()
+
+	db.users.ensure_index("name", pymongo.ASCENDING)
+	db.repos.ensure_index("name", pymongo.ASCENDING)
+		
 	to_run = [
 				["/home/cs448b/gothub/raw/user/search/", user_search],
 				["/home/cs448b/gothub/raw/user/geocode/", user_geocode]
