@@ -8,6 +8,17 @@ import json
 conn = pymongo.Connection()
 
 db = conn.raw
+queue = conn.queue
+
+#WARNING: THIS WILL DELETE ALL DATA IN RAW
+db.users.drop()
+db.commits.drop()
+db.repos.drop()
+queue.users.drop()
+queue.repos.drop()
+queue.commits.drop()
+db.users.ensure_index("name", pymongo.ASCENDING)
+db.repos.ensure_index([("owner", pymongo.ASCENDING), ("name", pymongo.ASCENDING)])
 
 def import_raw():
 	to_run = [
@@ -46,15 +57,15 @@ def import_raw():
 		
 	
 	
-def process_dir(dir, func):
-	files = os.listdir(dir)
+def process_dir(direc, func):
+	files = os.listdir(direc)
 	ctr = 0
 	for fname in files:
 		ctr = ctr + 1
 		if ctr % 1000 == 0:
 			print "Processed: " + str(ctr)
 		try:
-			file_path = dir + "/" + fname
+			file_path = direc + "/" + fname
 			f = open(file_path, "r")
 			jsonstr = f.read()
 			f.close()
@@ -66,25 +77,39 @@ def process_dir(dir, func):
 	
 def user_search(path, obj):
 	for user in obj["users"]:
-		db.users.insert(user)
-
+		existing = db.users.find_one({"name" : user["name"]})
+		if not existing:
+			id = db.users.insert(user)
+			queue.users.insert({"id" : id})
 
 def user_geocode(path, obj):
 	fname = path.split('/')[-1]
-	results = obj["ResultSet"]["Results"][0]
-	db.users.update({"name":fname}, {"$set" : {"geo" : results}}, upsert=True)
+	results = obj["ResultSet"]["Results"]
+	if len(results) == 1:
+                existing = db.users.find_one({"name" : fname})
+                if not existing:
+                        id = db.users.insert({"name": fname, "geo" : results[0]})
+                        queue.users.insert({"id" : id})
+		else:
+			db.users.update({"name":fname}, {"$set" : {"geo" : results[0]}})
 	
 def commits_list(path, obj):
 	cmts = obj["commits"]
 	for cmt in cmts:
-		db.commits.insert(cmt)
+		id = db.commits.insert(cmt)
+		queue.commits.insert({"id" : id})
 		
 def repos_show(path, obj):
 	spl = path.split('/')
 	repo_name = spl[-2]
 	owner = spl[-3]
 	key = obj.keys()[0]
-	db.repos.update({"name": repo_name}, {"$set" : {"owner" : owner, key : obj[key]}}, upsert=True)
+	existing = db.repos.find_one({"name" : repo_name, "owner" : owner})
+	if existing:
+		db.repos.update({"name": repo_name, "owner" : owner}, {"$set" : {key : obj[key]}})
+	else:
+		id = db.repos.insert({"name": repo_name, "owner" : owner, key : obj[key]})
+		queue.repos.insert({"id" : id})
 	
 	
 			
@@ -96,3 +121,4 @@ if __name__ == '__main__':
 	import_raw()
 
 # vim: tabstop=4 expandtab shiftwidth=4 softtabstop=4
+

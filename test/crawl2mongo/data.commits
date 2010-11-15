@@ -1,0 +1,28 @@
+{
+  "commits": [
+    {
+      "author": {
+        "name": "Arthur Koziel",
+        "login": "arthurk",
+        "email": "arthur@arthurkoziel.com"
+      },
+      "parents": [
+        {
+          "id": "1068e962caba091b44a986920052b145629db650"
+        }
+      ],
+      "testkey": "EVANTEST",
+      "url": "/arthurk/django-slopeone/commit/b64300c0ed99ce597af65001f2ca84bb761ae6bb",
+      "id": "b64300c0ed99ce597af65001f2ca84bb761ae6bb",
+      "committed_date": "2010-03-05T07:31:06-08:00",
+      "authored_date": "2010-03-05T07:31:06-08:00",
+      "message": "forgot to change the database_name setting of the testproject",
+      "committer": {
+        "name": "Arthur Koziel",
+        "login": "arthurk",
+        "email": "arthur@arthurkoziel.com"
+      },
+      "tree": "0121529382547100aead2267f284c4024e88dbc7"
+    }
+  ]
+}
