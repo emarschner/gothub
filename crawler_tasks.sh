@@ -5,8 +5,6 @@
 # Communicate with data APIs, backup responses to disk,
 # and write to MongoDB via crawl2mongo.py
 
-RUN_DIR=`echo $(dirname $0)`
-
 . "${RUN_DIR}/lib.sh"
 
 # Fetches: [GITHUB API]/user/search/{letter}
@@ -14,6 +12,7 @@ RUN_DIR=`echo $(dirname $0)`
 #   usernames => log/user/seen
 #   locations => log/user/location/{username}
 # DB: insert user data objects
+# State file: log/user/done
 # Run before running:
 #   usernames2repos
 # Run after running: none
@@ -29,6 +28,7 @@ function seed_usernames() {
 # Fetches: locations in log/user/location/{username} from Yahoo PlaceFinder API
 # Processing: none
 # DB: modify user data objects with geocodes
+# State file: log/user/geocoded
 # Run before running: none
 # Run after running:
 #   repos2owners
@@ -45,6 +45,7 @@ function usernames2geocodes() {
 # Fetches: [GITHUB API]/repos/watched/{username}
 # Processing: reponames => log/repos/seen
 # DB: none (used ony to get reponames for other crawler functions)
+# State file: log/repos/watched
 # Run before running:
 #   repos2owners
 #   repos2collaborators
@@ -68,13 +69,13 @@ function usernames2repos() {
 #   usernames => log/user/seen
 #   locations => log/user/location/{username}
 # DB: insert user data objects
+# State file: log/user/done
 # Run before running:
 #   usernames2geocodes
 #   usernames2repos
 # Run after running:
 #   usernames2repos
 function repos2owners() {
-  mkdir -p "${RUN_DIR}/raw/user/search" &> /dev/null
   all_seen_repos | while read reponame
   do
     user_search_api_path="`user_search_api_path "$(repo_owner_name "$reponame")"`"
@@ -86,6 +87,7 @@ function repos2owners() {
 # Fetches: [GITHUB API]/repos/show/{repo owner}/{repo name}/collaborators
 # Processing: usernames => log/user/seen
 # DB: insert collaborators property into repo object
+# State file: log/repos/collaborators/done
 # Run before running:
 #   usernames2geocodes
 #   usernames2repos
@@ -105,6 +107,7 @@ function repos2collaborators() {
 #   usernames => log/user/seen
 #   locations => log/user/location/{username}
 # DB: insert contributors property into repo object
+# State file: log/repos/contributors/done
 # Run before running:
 #   usernames2geocodes
 #   usernames2repos
@@ -122,6 +125,7 @@ function repos2contributors() {
 # Fetches: [GITHUB API]/repos/show/{repo owner}/{repo name}/branches
 # Processing: repo branches => log/repos/branches/{repo owner}/{repo name}
 # DB: insert branches property into repo object
+# State file: log/repos/branches/done
 # Run before running:
 #   branches2commits
 # Run after running:
@@ -138,6 +142,7 @@ function repos2branches() {
 # Fetches: [GITHUB API]/commits/list/{repo owner}/{repo name}/{branch name}
 # Processing: none
 # DB: insert commit objects
+# State file: log/commits/done
 # Run before running: none
 # Run after running:
 #   repos2branches

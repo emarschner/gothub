@@ -31,9 +31,8 @@ def main():
 	data = sys.stdin.read()
 	obj = json.loads(data)
 	if options.geocode and options.user_name:
-		results = obj["ResultSet"]["Results"]
-		if len(results) == 1:
-			db.users.update({"name":options.user_name}, {"$set" : {"geo" : results[0]}}, upsert=True)
+		if obj["ResultSet"]["Found"] == 1:
+			db.users.update({"name":options.user_name}, {"$set" : {"geo" : obj["ResultSet"]["Results"][0]}}, upsert=True)
 	elif options.user_search:
 		for user in obj["users"]:
 			existing = db.users.find_one({"name" : user["name"]})
@@ -47,6 +46,11 @@ def main():
 			queue.commits.insert({"id" : id})
 	elif options.repos_show and options.repo_name and options.user_name:
 		key = obj.keys()[0]
+		for sub_key in obj[key].keys():
+			clean_key = sub_key.replace(".", "_")
+			if clean_key != sub_key:
+				obj[key][clean_key] = obj[key][sub_key]
+				del obj[key][sub_key]
 		existing = db.repos.find_one({"name" : options.repo_name, "owner" : options.user_name})
 		if existing:
 			db.repos.update({"name": options.repo_name, "owner" : options.user_name}, {"$set" : {key : obj[key]}})

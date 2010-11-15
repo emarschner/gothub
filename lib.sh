@@ -65,11 +65,21 @@ function is_user_search_done() {
   fi
 }
 
+# Usage: is_user_located <username> => true or false
+function is_user_located() {
+  if [ -e "${RUN_DIR}/log/user/location/${1}" ]
+  then
+    echo true
+  else
+    echo false
+  fi
+}
+
 # Usage: is_user_geocoded <username> => true or false
 function is_user_geocoded() {
   mkdir -p "${RUN_DIR}/log/user" &> /dev/null
   touch "${RUN_DIR}/log/user/geocoded"
-  if [ `grep "^${1}$" "${RUN_DIR}/log/user/geocoded" | wc -l` -eq 0]
+  if [ `grep "^${1}$" "${RUN_DIR}/log/user/geocoded" | wc -l` -eq 0 ]
   then
     echo false
   else
@@ -79,9 +89,9 @@ function is_user_geocoded() {
 
 # Usage: is_repo_data_done <[repo-owner]/[repo-name]> <data field> => true or false
 function is_repo_data_done() {
-  mkdir -p "${RUN_DIR}/log/repos" &> /dev/null
-  touch "${RUN_DIR}/log/repos/${2}_done"
-  if [ `grep "^${1}$" "${RUN_DIR}/log/repos/${2}_done" | wc -l` -eq 0 ]
+  mkdir -p "${RUN_DIR}/log/repos/${2}" &> /dev/null
+  touch "${RUN_DIR}/log/repos/${2}/done"
+  if [ `grep "^${1}$" "${RUN_DIR}/log/repos/${2}/done" | wc -l` -eq 0 ]
   then
     echo false
   else
@@ -115,8 +125,8 @@ function are_commits_done() {
 
 # Usage: set_repo_data_done <[repo-owner]/[repo-name]> <data field> => void
 function set_repo_data_done() {
-  mkdir -p "${RUN_DIR}/log/repos" &> /dev/null
-  echo "$1" >> "${RUN_DIR}/log/repos/${2}_done"
+  mkdir -p "${RUN_DIR}/log/repos/${2}" &> /dev/null
+  echo "$1" >> "${RUN_DIR}/log/repos/${2}/done"
 }
 
 # Usage: set_commits_done <[repo-owner]/[repo-name]/[branch-name]> => void
@@ -140,7 +150,7 @@ function set_user_geocoded() {
 # Usage: set_user_search_done <term> => void
 function set_user_search_done() {
   mkdir -p "${RUN_DIR}/log/user" &> /dev/null
-  echo "$1" >> "{RUN_DIR}/log/user/done"
+  echo "$1" >> "${RUN_DIR}/log/user/done"
 }
 
 # Usage: save_user_location <username> <location> => void
@@ -151,7 +161,7 @@ function save_user_location() {
 
 # Usage: is_key_value <string> => true or false
 function is_key_value() {
-  if [ `grep ":" "$1" | wc -l` -eq 0 ]
+  if [ `echo "$1" | grep ":" | wc -l` -eq 0 ]
   then
     echo false
   else
@@ -173,9 +183,9 @@ function get_value() {
 function grab_github_data() {
   API_PATH="$1"
   RAW_FILE="${RUN_DIR}/raw/${API_PATH}"
-  mkdir -p "`dirname "$RAW_FILE"`" &> /dev/null
-  if [ ! -e "$RAW_FILE" ]
+  if [ ! -e "$RAW_FILE" ] || [ `cat "$RAW_FILE" | wc -m` -eq 0 ]
   then
+    mkdir -p "`dirname "$RAW_FILE"`" &> /dev/null
     github_fetch "$API_PATH" > "$RAW_FILE"
   else
     echo "Already fetched: $API_PATH (using cached)"
@@ -184,14 +194,20 @@ function grab_github_data() {
 
 # Usage: grab_geocode_data <username> => void
 function grab_geocode_data() {
-  RAW_FILE="${RUN_DIR}/raw/user/geocode/${1}"
-  mkdir -p "`dirname "$RAW_FILE"`" &> /dev/null
-  location=`cat "${RUN_DIR}/log/user/location/${username}"`
-  if [ ! -e "$RAW_FILE" ]
+  if [ -e "${RUN_DIR}/log/user/location/${username}" ]
   then
-    yahoo_geocode "$location" > "$RAW_FILE"
-  else
-    echo "Already fetched geocode data for: ${1} (using cached)"
+    location=`cat "${RUN_DIR}/log/user/location/${username}"`
+    if [ `echo -n "$location" | wc -m` -gt 0 ]
+    then
+      RAW_FILE="${RUN_DIR}/raw/user/geocode/${1}"
+      if [ ! -e "$RAW_FILE" ]
+      then
+        mkdir -p "`dirname "$RAW_FILE"`" &> /dev/null
+        yahoo_geocode "$location" > "$RAW_FILE"
+      else
+        echo "Already fetched geocode data for: ${1} (using cached)"
+      fi
+    fi
   fi
 }
 
@@ -275,7 +291,7 @@ function save_repo_branches() {
   repo_path=`dirname "$1"`
   reponame=${repo_path#repos/show/}
   mkdir -p "${RUN_DIR}/log/repos/branches/`dirname ${reponame}`" &> /dev/null
-  echo "Extracting branches for: " $reponame
+  echo "Saving branches for: $reponame"
   grep -v "[{}]" "${RUN_DIR}/raw/${1}" | sed -e 's/^ *"//' | sed -e 's/": *.*//' > "${RUN_DIR}/log/repos/branches/${reponame}"
 }
 
@@ -313,7 +329,7 @@ function parse_watched_repos() {
   username=`basename "$1"`
   if ! `are_watched_done "$username"`
   then
-    echo "Extracting watched repos from: " $username
+    echo "Extracting watched repos from: $username"
     cat "${RUN_DIR}/raw/${1}" | ruby format_repos.rb | while read reponame
     do
       if ! `is_repo_seen "$reponame"`; then set_repo_seen "$reponame"; fi
@@ -326,7 +342,7 @@ function parse_watched_repos() {
 
 # Usage: parse_geocode_data <username> => void
 function parse_geocode_data() {
-  if ! `is_user_geocoded "$1"`
+  if ! `is_user_geocoded "$1"` && `is_user_located "$1"`
   then
     store_user_geocode "$1"
     set_user_geocoded "$1"
