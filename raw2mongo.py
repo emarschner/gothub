@@ -4,6 +4,7 @@ import os
 import time
 import pymongo
 import json
+import optparse
 
 conn = pymongo.Connection()
 
