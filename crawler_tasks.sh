@@ -22,7 +22,7 @@ function seed_usernames() {
   for letter in a b c d e f g h i j k l m n o p q r s t u v w x y z
   do
     user_search_api_path="`user_search_api_path ${letter}`"
-    grab_github_data "$user_search_api_path"
+    ! `is_user_search_done "$letter"` && grab_github_data "$user_search_api_path"
     parse_user_search "$user_search_api_path"
   done
 }
@@ -40,7 +40,7 @@ function seed_usernames() {
 function usernames2geocodes() {
   all_seen_users | while read username
   do
-    grab_geocode_data "$username"
+    ! `is_user_geocoded "$username"` && grab_geocode_data "$username"
     parse_geocode_data "$username"
   done
 }
@@ -64,7 +64,7 @@ function usernames2repos() {
   all_seen_users | while read username
   do
     watched_repos_path="`watched_repos_path "$username"`"
-    grab_github_data "$watched_repos_path"
+    ! `are_watched_done "$username"` && grab_github_data "$watched_repos_path"
     parse_watched_repos "$watched_repos_path"
   done
 }
@@ -86,7 +86,7 @@ function repos2owners() {
   all_seen_repos | while read reponame
   do
     user_search_api_path="`user_search_api_path "$(repo_owner_name "$reponame")"`"
-    grab_github_data "$user_search_api_path"
+    ! `is_user_search_done "$(repo_owner_name "$reponame")"` && grab_github_data "$user_search_api_path"
     parse_user_search "$user_search_api_path"
   done
 }
@@ -106,7 +106,7 @@ function repos2collaborators() {
   all_seen_repos | while read reponame
   do
     repo_collaborators_api_path="`repo_data_api_path "$reponame" collaborators`"
-    grab_github_data "$repo_collaborators_api_path"
+    ! `is_repo_data_done "$reponame" collaborators` && grab_github_data "$repo_collaborators_api_path"
     parse_repo_data "$repo_collaborators_api_path"
   done
 }
@@ -128,7 +128,7 @@ function repos2contributors() {
   all_seen_repos | while read reponame
   do
     repo_contributors_api_path="`repo_data_api_path "$reponame" contributors`"
-    grab_github_data "$repo_contributors_api_path"
+    ! `is_repo_data_done "$reponame" contributors` && grab_github_data "$repo_contributors_api_path"
     parse_repo_data "$repo_contributors_api_path"
   done
 }
@@ -146,7 +146,7 @@ function repos2branches() {
   all_seen_repos | while read reponame
   do
     repo_branches_api_path="`repo_data_api_path "$reponame" branches`"
-    grab_github_data "$repo_branches_api_path"
+    ! `is_repo_data_done "$reponame" branches` && grab_github_data "$repo_branches_api_path"
     parse_repo_data "$repo_branches_api_path"
   done
 }
@@ -164,13 +164,10 @@ function branches2commits() {
   do
     all_repo_branches "$reponame" | while read branchname
     do
-      if ! `are_commits_done "${reponame}/${branchname}"`
-      then
-        branch_commits_api_path="`branch_commits_api_path "${reponame}/${branchname}"`"
-        grab_github_data "$branch_commits_api_path"
-        store_commits_data "$branch_commits_api_path"
-        set_commits_done "${reponame}/${branchname}"
-      fi
+      branch_commits_api_path="`branch_commits_api_path "${reponame}/${branchname}"`"
+      ! `are_commits_done "${reponame}/${branchname}"` && grab_github_data "$branch_commits_api_path"
+      store_commits_data "$branch_commits_api_path"
+      set_commits_done "${reponame}/${branchname}"
     done
   done
 }

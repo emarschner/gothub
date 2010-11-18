@@ -226,10 +226,13 @@ function store_user_search() {
   else
     echo "Crawl => Mongo import temporarily disabled. Move import Python script to ${RUN_DIR}/crawl2mongo.py to re-enable." >&2
   fi
-  mkdir -p "${RUN_DIR}/raw/full" &> /dev/null
-  cat "${RUN_DIR}/raw/${1}" | ruby to_single_line.rb >> "${RUN_DIR}/raw/full/user_search"
-  #rm "${RUN_DIR}/raw/${1}"
-  [ $? -ne 0 ] && return 1
+  if [ -e "${RUN_DIR}/raw/${1}" ]
+  then
+    mkdir -p "${RUN_DIR}/raw/full" &> /dev/null
+    cat "${RUN_DIR}/raw/${1}" | ruby to_single_line.rb >> "${RUN_DIR}/raw/full/user_search"
+    rm "${RUN_DIR}/raw/${1}"
+    [ $? -ne 0 ] && return 1
+  fi
   return 0
 }
 
@@ -248,10 +251,13 @@ function store_user_geocode() {
   else
     echo "Crawl => Mongo import temporarily disabled. Move import Python script to ${RUN_DIR}/crawl2mongo.py to re-enable." >&2
   fi
-  mkdir -p "${RUN_DIR}/raw/full" &> /dev/null
-  echo "{ \"${username}\": `cat "${RUN_DIR}/raw/user/geocode/${1}" | ruby to_single_line.rb` }" >> "${RUN_DIR}/raw/full/geocode"
-  #rm "${RUN_DIR}/raw/${1}"
-  [ $? -ne 0 ] && return 1
+  if [ -e "${RUN_DIR}/raw/${1}" ]
+  then
+    mkdir -p "${RUN_DIR}/raw/full" &> /dev/null
+    echo "{ \"${username}\": `cat "${RUN_DIR}/raw/user/geocode/${1}" | ruby to_single_line.rb` }" >> "${RUN_DIR}/raw/full/geocode"
+    rm "${RUN_DIR}/raw/user/geocode/${1}"
+    [ $? -ne 0 ] && return 1
+  fi
   return 0
 }
 
@@ -268,10 +274,13 @@ function store_repo_data() {
   else
     echo "Crawl => Mongo import temporarily disabled. Move import Python script to ${RUN_DIR}/crawl2mongo.py to re-enable." >&2
   fi
-  mkdir -p "${RUN_DIR}/raw/full" &> /dev/null
-  echo "{ \"${reponame}\": `cat "${RUN_DIR}/raw/${1}" | ruby to_single_line.rb` }" >> "${RUN_DIR}/raw/full/repos_show"
-  #rm "${RUN_DIR}/raw/${1}"
-  [ $? -ne 0 ] && return 1
+  if [ -e "${RUN_DIR}/raw/${1}" ]
+  then
+    mkdir -p "${RUN_DIR}/raw/full" &> /dev/null
+    echo "{ \"${reponame}\": `cat "${RUN_DIR}/raw/${1}" | ruby to_single_line.rb` }" >> "${RUN_DIR}/raw/full/repos_show"
+    rm "${RUN_DIR}/raw/${1}"
+    [ $? -ne 0 ] && return 1
+  fi
   return 0
 }
 
@@ -285,10 +294,13 @@ function store_commits_data() {
   else
     echo "Crawl => Mongo import temporarily disabled. Move import Python script to ${RUN_DIR}/crawl2mongo.py to re-enable." >&2
   fi
-  mkdir -p "${RUN_DIR}/raw/full" &> /dev/null
-  echo "{ \"${1#commits/list/}\": `cat "${RUN_DIR}/raw/${1}" | ruby to_single_line.rb` }" >> "${RUN_DIR}/raw/full/commits"
-  #rm "${RUN_DIR}/raw/${1}"
-  [ $? -ne 0 ] && return 1
+  if [ -e "${RUN_DIR}/raw/${1}" ]
+  then
+    mkdir -p "${RUN_DIR}/raw/full" &> /dev/null
+    echo "{ \"${1#commits/list/}\": `cat "${RUN_DIR}/raw/${1}" | ruby to_single_line.rb` }" >> "${RUN_DIR}/raw/full/commits"
+    rm "${RUN_DIR}/raw/${1}"
+    [ $? -ne 0 ] && return 1
+  fi
   return 0
 }
 
@@ -368,7 +380,7 @@ function parse_watched_repos() {
     do
       ! `is_repo_seen "$reponame"` && [ -n "$reponame" ] && set_repo_seen "$reponame"
     done
-    #rm "${RUN_DIR}/raw/${1}"
+    rm "${RUN_DIR}/raw/${1}"
     [ -n "$username" ] && set_watched_done "$username"
   else
     echo "Already got repos watched by: $username (skipping)" >&2
@@ -404,7 +416,7 @@ function all_seen_repos() {
 
 # Usage: all_repo_branches <[owner-name]/[repo-name]> => <all branches for given repo, one per line>
 function all_repo_branches() {
-  mkdir -p "${RUN_DIR}/log/repos/branches" &> /dev/null
+  mkdir -p "${RUN_DIR}/log/repos/branches/`dirname "$1"`" &> /dev/null
   touch "${RUN_DIR}/log/repos/branches/${1}"
   cat "${RUN_DIR}/log/repos/branches/${1}"
 }
