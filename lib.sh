@@ -3,7 +3,7 @@
 # Usage: github_fetch <API path> => <pretty-formatted JSON data>
 function github_fetch() {
   URL="http://github.com/api/v2/json/${1}"
-  echo Fetches: "$URL" 1>&2
+  echo Fetching: "$URL" 1>&2
   curl -s "$URL" | jsonpretty
   sleep 2
 }
@@ -12,7 +12,7 @@ function github_fetch() {
 function yahoo_geocode() {
   mkdir -p "${RUN_DIR}/raw/user/geocode" &> /dev/null
   URL="http://where.yahooapis.com/geocode?flags=J&appid=`grep id: ${RUN_DIR}/placefinder/config.yml | sed -e 's/^ *id: "//' | sed -e 's/"$//'`&location=`perl -MURI::Escape -e 'print uri_escape($ARGV[0]);' "$1"`"
-  echo Fetches: "$URL" 1>&2
+  echo Fetching: "$URL" 1>&2
   curl -s "$URL" | jsonpretty
   sleep 0.5
 }
@@ -308,10 +308,11 @@ function parse_repo_data() {
       cat "${RUN_DIR}/raw/${1}" | ruby user_data.rb | while read userdata
       do
         if `is_key_value "$userdata"`
+        then
           username="`get_key "$userdata"`"
           location="`get_value "$location"`"
           save_user_location "$username" "$location"
-        then
+        else
           username=$userdata
         fi
         if ! `is_user_seen "$username"`; then set_user_seen "$username"; fi
@@ -365,3 +366,4 @@ function all_seen_repos() {
 function all_repo_branches() {
   cat "${RUN_DIR}/log/repos/branches/${1}"
 }
+
