@@ -5,6 +5,7 @@ import time
 import pymongo
 import json
 import optparse
+import codecs
 
 conn = pymongo.Connection()
 
@@ -77,7 +78,7 @@ def process_dir(direc, func):
 			print "Processed: " + str(ctr)
 		try:
 			file_path = direc + "/" + fname
-			f = open(file_path, "r")
+			f = codecs.open(file_path, encoding='utf-8', mode='r')
 			jsonstr = f.read()
 			f.close()
 			obj = json.loads(jsonstr)
@@ -97,10 +98,10 @@ def user_geocode(path, obj):
 	fname = path.split('/')[-1]
 	results = obj["ResultSet"]["Results"]
 	if len(results) == 1:
-                existing = db.users.find_one({"name" : fname})
-                if not existing:
-                        id = db.users.insert({"name": fname, "geo" : results[0]})
-                        queue.users.insert({"id" : id})
+		existing = db.users.find_one({"name" : fname})
+		if not existing:
+			id = db.users.insert({"name": fname, "geo" : results[0]})
+			queue.users.insert({"id" : id})
 		else:
 			db.users.update({"name":fname}, {"$set" : {"geo" : results[0]}})
 	

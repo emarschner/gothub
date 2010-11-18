@@ -6,6 +6,7 @@ import pymongo
 import json
 import sys
 import optparse
+import codecs
 
 def main():
 	usage = "usage: %prog [options]"
@@ -28,11 +29,18 @@ def main():
 		db = conn.rawtest
 		queue = conn.queuetest
 
-	data = sys.stdin.read()
+	char_stream = codecs.getreader("utf-8")(sys.stdin)
+	data = char_stream.read()
 	obj = json.loads(data)
 	if options.geocode and options.user_name:
 		if obj["ResultSet"]["Found"] == 1:
-			db.users.update({"name":options.user_name}, {"$set" : {"geo" : obj["ResultSet"]["Results"][0]}}, upsert=True)
+			existing = db.users.find_one({"name" : options.user_name})
+			if not existing:
+				id = db.users.insert({"name" : options.user_name, "geo" : obj["ResultSet"]["Results"][0]})
+				queue.users.insert({"id" : id})
+			else:
+				db.users.update({"name":options.user_name}, {"$set" : {"geo" : obj["ResultSet"]["Results"][0]}})
+				queue.users.insert({"id" : existing["_id"]})
 	elif options.user_search:
 		for user in obj["users"]:
 			existing = db.users.find_one({"name" : user["name"]})
@@ -42,8 +50,10 @@ def main():
 	elif options.commits:
 		cmts = obj["commits"]
 		for cmt in cmts:
-			id = db.commits.insert(cmt)
-			queue.commits.insert({"id" : id})
+			existing = db.commits.find_one({"id" : cmt["id"]})
+			if not existing:
+				id = db.commits.insert(cmt)
+				queue.commits.insert({"id" : id})
 	elif options.repos_show and options.repo_name and options.user_name:
 		key = obj.keys()[0]
 		for sub_key in obj[key].keys():
@@ -54,6 +64,7 @@ def main():
 		existing = db.repos.find_one({"name" : options.repo_name, "owner" : options.user_name})
 		if existing:
 			db.repos.update({"name": options.repo_name, "owner" : options.user_name}, {"$set" : {key : obj[key]}})
+			queue.repos.insert({"id" : existing["_id"]})
 		else:
 			id = db.repos.insert({"name": options.repo_name, "owner" : options.user_name, key : obj[key]})
 			queue.repos.insert({"id" : id})
