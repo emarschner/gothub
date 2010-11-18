@@ -11,7 +11,8 @@ conn = pymongo.Connection()
 # db -> collections
 dbs = {
        'raw' : ['commits', 'repos', 'users'],
-       'queue' : ['commits', 'repos', 'users']
+       'queue' : ['commits', 'repos', 'users'],
+       'processed' : ['commits']
 }
 
 for db, collections in dbs.iteritems():
