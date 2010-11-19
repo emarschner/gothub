@@ -33,6 +33,8 @@ def import_raw():
 		queue.commits.drop()
 	
 	if options.test_mode:
+		print "Test Mode"
+		global db, queue
 		db = conn.rawtest
 		queue = conn.queuetest
 
@@ -44,7 +46,7 @@ def import_raw():
 				["user_search", user_search],
 				["geocode", user_geocode],
 				["repos_show", repos_show],
-				["commits", commits]
+				["commits", commits_list]
 				
 			]
 	for proc in to_run:
@@ -54,8 +56,12 @@ def import_raw():
 	
 def process_file(file_path, func):
 		f = codecs.open(file_path, encoding='utf-8', mode='r')
+		ctr = 0
 		for line in f:
-			obj = json.loads(obj)
+			ctr = ctr + 1
+			if ctr % 1000 == 0:
+				print "Processed: " + str(ctr)
+			obj = json.loads(line)
 			func(file_path, obj)
 		f.close()
 			
