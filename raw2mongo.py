@@ -14,7 +14,7 @@ queue = conn.queue
 
 
 def import_raw():
-	
+	global db, queue
 	usage = "usage: %prog [options]"
 	parser = optparse.OptionParser(usage)
 	parser.add_option("-d", "--drop", dest="should_drop", 
@@ -23,7 +23,12 @@ def import_raw():
 				help="Use a test database")
 	
 	options, args = parser.parse_args()
-	
+
+	if options.test_mode:
+		print "Test Mode"
+		db = conn.rawtest
+		queue = conn.queuetest
+
 	if options.should_drop:
 		db.users.drop()
 		db.commits.drop()
@@ -32,12 +37,6 @@ def import_raw():
 		queue.repos.drop()
 		queue.commits.drop()
 	
-	if options.test_mode:
-		print "Test Mode"
-		global db, queue
-		db = conn.rawtest
-		queue = conn.queuetest
-
 	db.users.ensure_index("name", pymongo.ASCENDING)
 	db.repos.ensure_index("name", pymongo.ASCENDING)
 	
@@ -77,14 +76,15 @@ def user_geocode(path, obj):
 	#{"emarschner" : data}
 	user_name = obj.keys()[0]
 	obj = obj[user_name]
-	results = obj["ResultSet"]["Results"]
-	if len(results) == 1:
-		existing = db.users.find_one({"name" : user_name})
-		if not existing:
-			id = db.users.insert({"name": user_name, "geo" : results[0]})
-			queue.users.insert({"id" : id})
-		else:
-			db.users.update({"name":user_name}, {"$set" : {"geo" : results[0]}})
+	if obj.has_key("ResultSet") and obj["ResultSet"].has_key("Results"):
+		results = obj["ResultSet"]["Results"]
+		if len(results) == 1:
+			existing = db.users.find_one({"name" : user_name})
+			if not existing:
+				id = db.users.insert({"name": user_name, "geo" : results[0]})
+				queue.users.insert({"id" : id})
+			else:
+				db.users.update({"name":user_name}, {"$set" : {"geo" : results[0]}})
 	
 def commits_list(path, obj):
 	#{"emarschner/gothub/master" : {"commits" : []}}
