@@ -5,7 +5,7 @@ function github_fetch() {
   URL="http://github.com/api/v2/json/${1}"
   echo Fetching: "$URL" >&2
   curl -s "$URL" | jsonpretty
-  sleep 2
+  sleep 5
 }
 
 # Usage: yahoo_geocode <location string> => <pretty-formatted JSON data>
@@ -286,10 +286,14 @@ function store_repo_data() {
 
 # Usage: store_commits_data <commits data api path> => void
 function store_commits_data() {
+  repo_path=`dirname "$1"`
+  branch_path="${1#commits/list/}"
+  owner="`repo_owner_name "$branch_path"`"
+  reponame="`repo_owner_name "${branch_path#${owner}/}"`"
   if [ -e "${RUN_DIR}/crawl2mongo.py" ]
   then
     echo "Writing commits to mongo for: ${1#commits/list/}" >&2
-    cat "${RUN_DIR}/raw/${1}" | python "${RUN_DIR}/crawl2mongo.py" --commits
+    cat "${RUN_DIR}/raw/${1}" | python "${RUN_DIR}/crawl2mongo.py" --commits -u "$owner" -r "$reponame"
     [ $? -ne 0 ] && return 1
   else
     echo "Crawl => Mongo import temporarily disabled. Move import Python script to ${RUN_DIR}/crawl2mongo.py to re-enable." >&2

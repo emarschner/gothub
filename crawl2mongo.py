@@ -48,19 +48,21 @@ def main():
 				id = db.users.insert(user)
 				queue.users.insert({"id" : id})
 	elif options.commits:
-		cmts = obj["commits"]
-		for cmt in cmts:
-			existing = db.commits.find_one({"id" : cmt["id"]})
-			if not existing:
-				id = db.commits.insert(cmt)
-				queue.commits.insert({"id" : id})
+		if "commits" in obj:
+			cmts = obj["commits"]
+			for cmt in cmts:
+				existing = db.commits.find_one({"id" : cmt["id"]})
+				if not existing:
+					id = db.commits.insert(cmt)
+					queue.commits.insert({"id" : id})
 	elif options.repos_show and options.repo_name and options.user_name:
 		key = obj.keys()[0]
-		for sub_key in obj[key].keys():
-			clean_key = sub_key.replace(".", "_")
-			if clean_key != sub_key:
-				obj[key][clean_key] = obj[key][sub_key]
-				del obj[key][sub_key]
+		if isinstance(obj[key], dict) :
+			for sub_key in obj[key].keys():
+				clean_key = sub_key.replace(".", "_")
+				if clean_key != sub_key:
+					obj[key][clean_key] = obj[key][sub_key]
+					del obj[key][sub_key]
 		existing = db.repos.find_one({"name" : options.repo_name, "owner" : options.user_name})
 		if existing:
 			db.repos.update({"name": options.repo_name, "owner" : options.user_name}, {"$set" : {key : obj[key]}})
