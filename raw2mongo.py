@@ -19,6 +19,8 @@ def import_raw():
 	parser = optparse.OptionParser(usage)
 	parser.add_option("-d", "--drop", dest="should_drop", 
 		action="store_true", help="drop existing collections")
+	parser.add_option("-t", "--test", dest="test_mode", action="store_true",
+				help="Use a test database")
 	
 	options, args = parser.parse_args()
 	
@@ -29,62 +31,33 @@ def import_raw():
 		queue.users.drop()
 		queue.repos.drop()
 		queue.commits.drop()
+	
+	if options.test_mode:
+		db = conn.rawtest
+		queue = conn.queuetest
 
 	db.users.ensure_index("name", pymongo.ASCENDING)
 	db.repos.ensure_index("name", pymongo.ASCENDING)
-		
+	
+	base_dir = "/home/cs448b/gothub/raw/full/"
 	to_run = [
-				["/home/cs448b/gothub/raw/user/search/", user_search],
-				["/home/cs448b/gothub/raw/user/geocode/", user_geocode]
+				["user_search", user_search],
+				["geocode", user_geocode],
+				["repos_show", repos_show],
+				["commits", commits]
+				
 			]
 	for proc in to_run:
 		print "Processing: " + str(proc[0])
-		process_dir(proc[0], proc[1])
-		
-	print "Processing commits"
-	commit_dir = "/home/cs448b/gothub/raw/commits/list/"
-	users = os.listdir(commit_dir)
-	for user in users:
-		user_dir = commit_dir + "/" + user
-		try:
-			projs = os.listdir(user_dir)
-			for proj in projs:
-				proj_dir = user_dir + "/" + proj
-				process_dir(proj_dir, commits_list)
-		except:
-			pass
-
-	print "Processing repos"
-	repos_dir = "/home/cs448b/gothub/raw/repos/show/"
-	users = os.listdir(repos_dir)
-	for user in users:
-		user_dir = repos_dir + '/' + user
-		try:
-			repos = os.listdir(user_dir)
-			for repo in repos:
-				repo_dir = user_dir + "/" + repo
-				process_dir(repo_dir, repos_show)
-		except:
-			pass
-		
+		process_file(base_dir + proc[0], proc[1])
 	
 	
-def process_dir(direc, func):
-	files = os.listdir(direc)
-	ctr = 0
-	for fname in files:
-		ctr = ctr + 1
-		if ctr % 1000 == 0:
-			print "Processed: " + str(ctr)
-		try:
-			file_path = direc + "/" + fname
-			f = codecs.open(file_path, encoding='utf-8', mode='r')
-			jsonstr = f.read()
-			f.close()
-			obj = json.loads(jsonstr)
+def process_file(file_path, func):
+		f = codecs.open(file_path, encoding='utf-8', mode='r')
+		for line in f:
+			obj = json.loads(obj)
 			func(file_path, obj)
-		except:
-			pass
+		f.close()
 			
 	
 def user_search(path, obj):
@@ -95,30 +68,67 @@ def user_search(path, obj):
 			queue.users.insert({"id" : id})
 
 def user_geocode(path, obj):
-	fname = path.split('/')[-1]
+	#{"emarschner" : data}
+	user_name = obj.keys()[0]
+	obj = obj[user_name]
 	results = obj["ResultSet"]["Results"]
 	if len(results) == 1:
-		existing = db.users.find_one({"name" : fname})
+		existing = db.users.find_one({"name" : user_name})
 		if not existing:
-			id = db.users.insert({"name": fname, "geo" : results[0]})
+			id = db.users.insert({"name": user_name, "geo" : results[0]})
 			queue.users.insert({"id" : id})
 		else:
-			db.users.update({"name":fname}, {"$set" : {"geo" : results[0]}})
+			db.users.update({"name":user_name}, {"$set" : {"geo" : results[0]}})
 	
 def commits_list(path, obj):
+	#{"emarschner/gothub/master" : {"commits" : []}}
+	key = obj.keys()[0]
+	owner, repo_name, branch = key.split('/')
+	obj = obj[key]
 	cmts = obj["commits"]
 	for cmt in cmts:
-		id = db.commits.insert(cmt)
-		queue.commits.insert({"id" : id})
+		existing = db.commits.find_one({"id" : cmt["id"]})
+		long_name = owner + '/' + repo_name
+		if not existing:
+			cmt["repo_n"] = [repo_name]
+			cmt["repo_l"] = [long_name]
+			id = db.commits.insert(cmt)
+			queue.commits.insert({"id" : id})
+		else:
+			changed = False
+			if cmt.has_key("repo_n"):
+				if not (repo_name in cmt["repo_n"]):
+					cmt["repo_n"].append(repo_name)
+					changed = True
+			else:
+				cmt["repo_n"] = [repo_name]
+				changed = True
+			if cmt.has_key("repo_l"):
+				if not (long_name in cmt["repo_l"]):
+					cmt["repo_l"].append(long_name)
+					changed = True
+			else:
+				cmt["repo_l"] = [long_name]
+				changed = True
+			if changed:
+				db.commits.update({"id": cmt["id"]}, {"$set" : {"repo_l" : cmt["repo_l"], "repo_n" : cmt["repo_n"]}})
+				queue.commits.insert({"id": existing["_id"]})
 		
 def repos_show(path, obj):
-	spl = path.split('/')
-	repo_name = spl[-2]
-	owner = spl[-3]
+	#{"emarschner/gothub" : { "contributors" : blah}}
 	key = obj.keys()[0]
+	owner, repo_name = key.split('/')
+	obj = obj[key]
+	key = obj.keys()[0]
+	for sub_key in obj[key].keys():
+		clean_key = sub_key.replace(".", "_")
+		if clean_key != sub_key:
+			obj[key][clean_key] = obj[key][sub_key]
+			del obj[key][sub_key]
 	existing = db.repos.find_one({"name" : repo_name, "owner" : owner})
 	if existing:
 		db.repos.update({"name": repo_name, "owner" : owner}, {"$set" : {key : obj[key]}})
+		queue.repos.insert({"id" : existing["_id"]})
 	else:
 		id = db.repos.insert({"name": repo_name, "owner" : owner, key : obj[key]})
 		queue.repos.insert({"id" : id})
