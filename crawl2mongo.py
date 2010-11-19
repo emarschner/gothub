@@ -47,7 +47,7 @@ def main():
 			if not existing:
 				id = db.users.insert(user)
 				queue.users.insert({"id" : id})
-	elif options.commits and options.repo_name and options.user_name
+	elif options.commits and options.repo_name and options.user_name:
 		cmts = obj["commits"]
 		for cmt in cmts:
 			existing = db.commits.find_one({"id" : cmt["id"]})
