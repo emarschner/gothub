@@ -1,0 +1,11 @@
+$def with (conn, dbs)
+
+<html>
+<body>
+$for db, collections in dbs.iteritems():
+	$for collection in collections:
+		$code:
+			count = conn[db][collection].count()
+		<div>${"%s.%s: %i" % (db, collection, count)}</div>
+</body>
+</html>		

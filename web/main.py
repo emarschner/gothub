@@ -1,6 +1,6 @@
 import web
-import model
-import markdown
+#import model
+#import markdown
 import pymongo
 import json
 
@@ -9,16 +9,11 @@ conn = pymongo.Connection()
 urls = (
     '/', 'Index',
     '/stats', 'Stats',
-    '/(.*)', 'Index',
+    '/test', 'Test',
 )
 
 
-### Templates
-t_globals = {
-    'datestr': web.datestr,
-    'markdown': markdown.markdown,
-}
-render = web.template.render('templates', base='base', globals=t_globals)
+render = web.template.render('templates/')
 
 
 class Index:
@@ -27,22 +22,23 @@ class Index:
         """ Show page """
         return "Hello, World!"
 
-
+class Test:
+    def GET(self):
+        params = web.input()
+        if params.has_key('name'):
+            return "<h1>" + params.name + "</h1>"
+        else:
+            return "<h1> no name </h1>"
 class Stats:
 
-    def GET(self, url):
+    def GET(self):
        	# db -> collections
 		dbs = {
 		       'raw' : ['commits', 'repos', 'users'],
 		       'queue' : ['commits', 'repos', 'users'],
 		       'processed' : ['commits']
 		}
-		retVal = ""
-		for db, collections in dbs.iteritems():
-		    for collection in collections:
-		        count = conn[db][collection].count()
-		        retVal += "%s.%s: %i" % (db, collection, count)
-		return retVal
+		return render.stats(conn,dbs)
 
 
 app = web.application(urls, globals())
