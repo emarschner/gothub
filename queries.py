@@ -13,8 +13,14 @@ from pymongo import Connection
 #INPUT_DB = 'processed100k'
 INPUT_DB = 'processed'
 
+#COLLECTION = 'commits'
+#COLLECTION = 'commits_min'
+#COLLECTION = 'loc'
+COLLECTION = 'split'
+
 conn = Connection(slave_okay=True)
 processed = conn[INPUT_DB]
+coll = processed[COLLECTION]
 
 time_ranges = [
     ['april_month', [datetime(2010, 4, 1), datetime(2010, 5, 1)]],
@@ -23,6 +29,7 @@ time_ranges = [
 ]
 
 geo_box_ranges = [
+    #['world', [[-89.0, -179.9], [89.9, 179.9]]],
     ['bayarea', [[37.2, -123.0], [38.0, -121.0]]],
     #['cali', [[32.81, -125.0], [42.0, -114.0]]],
     #['america', [[25.0, -125.0], [50.0, -65.0]]],
@@ -72,24 +79,67 @@ def geo_near_match(range):
     # range is [center, radius]
     return {"loc": {"$near": range[0], "$maxDistance": range[1]}}
 
-def run_queries(tests, match_fcn):
+def geo_split_box_match(range):
+    # range is [center, radius]
+    return {
+        "long": {"$gt": range[0][1], "$lt": range[1][1]},
+        "lat": {"$gt": range[0][0], "$lt": range[1][0]}
+    }
+
+def run_queries(tests, match_fcn, process_fcn = None):
     # Test are 2-element lists of descriptions and range specs.
     # Match fcn takes a range spec and generates a match input.
+    # Process fcn takes a cursor arg.
     for entry in tests:
         desc, range = entry
         print "--------------------------------------------"
         print "desc: %s\nrange: %s" % (desc, range)
         match = match_fcn(range)
-        print "match: %s"
+        print "match: %s" % match
         start = time.time()
-        matching = processed.commits.find(match)
+        matching = coll.find(match)
         matched = matching.count()
+        if process_fcn:
+            process_fcn(matching)
         elapsed = float(time.time() - start)
         print "matched: %i" % matched
         print "time: %0.6f" % elapsed
 
+def process_loc_str(matching):
+    for m in matching:
+        x = m['sha1']
+        #x = str(m['sha1']) + str(m['lat'])
+
+def process_loc_list(matching):
+    shas = []
+    for m in matching:
+        shas.extend(m['sha1'])
+
+def process_loc_gettimes(matching):
+    dates = []
+    i = 0
+    commits = processed['commits']
+    for m in matching:
+        shas = m['sha1']
+        i += len(shas)
+        for sha in shas:
+            dates += sha
+            c = commits.find_one({'sha1': sha})
+            #print c
+            i += 1
+            #dates.append(c['committed_date_native'])
+
+    print "total commits matched: %i" % i
 
 #run_queries(time_ranges, time_match)
 #run_queries(geo_box_ranges, geo_box_match)
 #run_queries(geo_circle_ranges, geo_circle_match)
 #run_queries(geo_circle_ranges, geo_near_match)
+
+#run_queries(geo_box_ranges, geo_box_match, process_loc_list)
+#run_queries(geo_box_ranges, geo_box_match, process_loc_gettimes)
+
+#run_queries(geo_box_ranges, geo_split_box_match, process_loc_str)
+
+#run_queries([['null', {}]], lambda x: x)
+#run_queries([['null', {}]], lambda x: x, process_loc_str)
