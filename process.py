@@ -49,7 +49,12 @@ DEF_OUTPUT_COLL = 'commits'
 
 class CommitProcessor:
 
-    def __init__(self):
+    def __init__(self, process_fcn = None, post_fcn = None):
+        if not process_fcn:
+            self.process_fcn = self.process_commit
+        else:
+            self.process_fcn = process_fcn
+        self.post_fcn = post_fcn
         self.parse_args()
         conn = Connection()
         self.input_db = conn[self.options.input_db]
@@ -156,6 +161,16 @@ class CommitProcessor:
             #print commit
             #raise Exception("no author login or name found")
 
+    def process_commit(self, c):
+        if self.options.build:
+            commit = self.build_commit(c)
+            if commit:
+                if self.options.clear:
+                    self.output_coll.insert(commit)
+                else:
+                    sha1 = commit['sha1']
+                    self.output_coll.update({'sha1': sha1}, commit, True)
+
     def process_commits(self):
         # Create processed rows
         print "[time] [commits parsed]"
@@ -167,14 +182,7 @@ class CommitProcessor:
         for c in cursor:
             i += 1
             if self.options.mode == 'normal':
-                if self.options.build:
-                    commit = self.build_commit(c)
-                    if commit:
-                        if self.options.clear:
-                            self.output_coll.insert(commit)
-                        else:
-                            sha1 = commit['sha1']
-                            self.output_coll.update({'sha1': sha1}, commit, True)
+                self.process_fcn(c)
             elif self.options.mode == 'string':
                 s = str(c)
             elif self.options.mode == 'null':
@@ -192,6 +200,9 @@ class CommitProcessor:
             if i % PRINT_INTERVAL == 0:
                 elapsed = float(time.time() - start)
                 print '%0.3f %i' % (elapsed, i)
+
+        if self.post_fcn:
+            self.post_fcn()
 
         elapsed = float(time.time() - start)
         print "read %i commits in %0.3f seconds" % (i, elapsed)
