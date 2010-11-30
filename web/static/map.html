@@ -1,0 +1,136 @@
+<html>
+  <head>
+    <title>Exploring Home Mortgages</title>
+    <script type="text/javascript" src="http://polymaps.org/protodata.min.js?3.2"></script>
+    <script type="text/javascript" src="http://polymaps.org/polymaps.min.js?2.2.0"></script>
+    <script type="text/javascript" src="js/jquery.min.js"></script>
+	<script type="text/javascript" src="js/jqueryui.min.js"></script>
+    
+	<link href="css/jqueryui.css" rel="stylesheet" type="text/css"/>
+	<link href="http://code.jquery.com/mobile/1.0a1/jquery.mobile-1.0a1.min.css" rel="stylesheet" type="text/css"/>
+	<link href="css/style.css" rel="stylesheet" type="text/css"/>
+  </head>
+  <body>
+	<div id="tooltip"><div class="tipHeader"></div><div class="tipBody"></div><div class="tipFooter"></div></div>
+    <div id="sidebar">
+      <div class="title">Exploring Home Mortgages</div>
+      <div class="subtitle">Ravi Parikh and Evan Rosenfeld</div>
+	<ul class="ui-listview ui-listview-inset ui-corner-all ui-controlgroup ui-controlgroup-vertical ui-shadow">
+		<li class="ui-li ui-li-divider ui-btn ui-bar-b ui-corner-top" id="spotlight_title">Spotlight</li>
+		<li class="ui-li ui-li-divider" id="spotlight_body1" style="border-bottom: 1px solid #456F9A; display:none">
+			<div id="region_name">(none selected)</div>
+			<div class="filter_title">Filter By Income</div>
+			<div id="amount" style="border:0; color:#f6931f; font-weight:bold;"></div>
+			<div id="num_homes" style="border:0; color:#f6931f; font-weight:bold;"></div>
+			<!-- <div id="slider-range"></div> -->
+			<div class="range_box">
+			  Min: $<input type="text" name="range_min" value="0" id="range_min" class="range_input"/>
+			</div>
+			<div class="range_box">
+			  Max: $<input type="text" name="range_min" value="0" id="range_max" class="range_input"/>
+			</div>
+		</li>
+		<li class="ui-li ui-li-divider ui-corner-bottom" id="spotlight_body2">
+            <div class="filter_title" id="filter_bottom_title">Select a region for details</div>
+			<div id="summary" style="display:none;">
+			</div>
+		</li>
+	</ul>
+      <form name="filter_form" id="filter_form">
+		<ul class="ui-listview ui-listview-inset ui-corner-all ui-controlgroup ui-controlgroup-vertical ui-shadow">
+			<li class="ui-li ui-li-divider ui-btn ui-bar-b ui-corner-top">Settings</li>
+			<li class="ui-li ui-li-divider" style="border-bottom: 1px solid #456F9A;">
+				<div class="filter_title">Aggregate By</div>
+	            <div class="field">
+					<input type="radio" name="geo" value="county" checked /><span>County</span>
+				</div>
+				<div class="field">
+	            	<input type="radio" name="geo" value="state" /><span>State</span>
+				</div>
+			</li>
+			<li class="ui-li ui-li-divider ui-corner-bottom">
+	            <div class="filter_title">Color By</div>
+				<div class="field">
+	            	<input type="radio" name="metric" value="rate_spread" checked /><span>Rate spread</span>
+				</div>
+	            <div class="field">
+					<input type="radio" name="metric" value="income" /><span>Income</span>
+				</div>
+	            <div class="field">
+					<input type="radio" name="metric" value="loan_amount" /><span>Loan amount</span>
+				</div>
+			</li>
+		</ul>
+	</form>
+	<ul class="ui-listview ui-listview-inset ui-corner-all ui-controlgroup ui-controlgroup-vertical ui-shadow">
+		<li class="ui-li ui-li-divider ui-btn ui-bar-b ui-corner-top ui-corner-bottom"><a href="javascript:void(0)" id="about_link">About this visualization</a></li>
+	</ul>
+	</div>
+	<ul class="legend ui-listview ui-listview-inset ui-corner-all ui-controlgroup ui-controlgroup-vertical ui-shadow">
+		<li class="ui-li ui-li-divider ui-btn ui-bar-b ui-corner-top">Legend</li>
+		<li class="ui-li ui-li-divider">
+		    <div class="legend_tile" style="background-color: #005">
+		    </div>
+		    <div class="legend_name" id="legend_name1">
+		      0 - 3.5%
+		    </div>
+		    <div style="clear:both"></div>
+		</li>
+		<li class="ui-li ui-li-divider">
+		    <div class="legend_tile" style="background-color: #027">
+		    </div>
+		    <div class="legend_name" id="legend_name2">
+		      3.5 - 4.0%
+		    </div>
+		    <div style="clear:both"></div>
+		</li>
+		<li class="ui-li ui-li-divider">
+		    <div class="legend_tile" style="background-color: #049">
+		    </div>
+		    <div class="legend_name" id="legend_name3">
+		      4.0 - 4.5%
+		    </div>
+		    <div style="clear:both"></div>
+		</li>
+		<li class="ui-li ui-li-divider">
+		    <div class="legend_tile" style="background-color: #16a">
+		    </div>
+		    <div class="legend_name" id="legend_name4">
+		      4.5 - 5.0%
+		    </div>
+		    <div style="clear:both"></div>
+		</li>
+		<li class="ui-li ui-li-divider">
+		    <div class="legend_tile" style="background-color: #37d">
+		    </div>
+		    <div class="legend_name" id="legend_name5">
+		      5.0 - 5.5%
+		    </div>
+		    <div style="clear:both"></div>
+		</li>
+		<li class="ui-li ui-li-divider">
+		    <div class="legend_tile" style="background-color: #58f">
+		    </div>
+		    <div class="legend_name" id="legend_name6">
+		      >5.5%
+		    </div>
+		    <div style="clear:both"></div>
+		</li>
+	</ul>
+
+    <div id="loading">
+      <div class="loading_inner">
+        Updating Map . . .<br/>
+        <img src="loading.gif" />
+      </div>
+    </div>
+    <div id="about_popup">
+      A visualization of home mortgage loans issued between 2007-09, by Ravi Parikh and Evan Rosenfeld. Data from Home Mortgage Disclosure Act (HMDA).
+      <br/><br/>
+      (click to close)
+    </div>
+    <div id="map">
+      <script type="text/javascript" src="subprime.js"></script>
+    </div>
+  </body>
+</html>
