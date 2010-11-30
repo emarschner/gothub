@@ -1,0 +1,29 @@
+Notes on installing mongodb onto Ubuntu Server 10.04 (use AMD64 version):
+
+Mongo Install
+from: http://www.mongodb.org/display/DOCS/Ubuntu+and+Debian+packages
+
+Add to /etc/apt/sources.list:
+deb http://downloads.mongodb.org/distros/ubuntu 10.4 10gen
+
+sudo apt-key adv --keyserver keyserver.ubuntu.com --recv 7F0CEB10
+sudo apt-get install mongodb-stable
+sudo service mongodb stop
+
+sudo apt-get install python-setuptools
+sudo apt-get -y install python-dev
+sudo easy_install pymongo
+
+sudo mkdir -p /data/db/
+sudo chown `id -u` /data/db
+
+Master/Slave specific setup:
+http://www.mongodb.org/display/DOCS/Master+Slave
+
+Start master (nfcm5):
+sudo mongod --master --dbpath /data/db/ --fork --logpath /var/log/mongodb/mongod.log --logappend
+
+Start slave (nfcm6):
+sudo mongod --slave --source nfcm5 --dbpath /data/db/ --fork --logpath /var/log/mongodb/mongod.log --logappend --autoresync
+
+
