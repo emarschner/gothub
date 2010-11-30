@@ -1,0 +1,56 @@
+// Example Mongo shell commands
+
+// These commands are intended to be run after process.py has done its thing
+// to raw and outputted processed, in the mongo shell.
+
+// Bay Area commits
+var lat_min = 37.2;
+var lat_max = 38.0;
+var long_min = -123.0;
+var long_max = -121.0;
+var query = {"lat": {"$gt": lat_min, "$lt": lat_max}, "long": {"$gt": long_min, "$lt": long_max}};
+db.commits.find(query).explain()
+db.commits.find(query).count()
+
+// All Rails commits
+var project = "rails";
+var query = {"project": project}
+db.commits.find(query).explain()
+db.commits.find(query).count()
+
+// Rails in Sept vs Oct
+// Sept
+var date_start = new Date(2010, 9, 1);
+var date_end = new Date(2010, 10, 1);
+var query = {"project": project, "date": {"$gt": date_start, "$lt": date_end}}
+db.commits.find(query).explain()
+db.commits.find(query).count()
+// Oct
+var date_start = new Date(2010, 10, 1);
+var date_end = new Date(2010, 11, 1);
+var query = {"project": project, "date": {"$gt": date_start, "$lt": date_end}}
+db.commits.find(query).explain()
+db.commits.find(query).count()
+
+// Rails commits in Oct in Bay Area
+var query = {
+    "lat": {"$gt": lat_min, "$lt": lat_max},
+    "long": {"$gt": long_min, "$lt": long_max},
+    "date": {"$gt": date_start, "$lt": date_end},         
+    "project": project
+};
+db.commits.find(query).explain()
+db.commits.find(query).count()
+// none  :-(
+
+// Rails commits in last year in Bay Area?
+var date_start = new Date(2010, 0, 1);
+var date_end = new Date(2010, 11, 1);
+var query = {
+    "lat": {"$gt": lat_min, "$lt": lat_max},
+    "long": {"$gt": long_min, "$lt": long_max},
+    "date": {"$gt": date_start, "$lt": date_end},         
+    "project": project
+};
+db.commits.find(query).explain()
+db.commits.find(query).count()
