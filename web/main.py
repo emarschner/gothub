@@ -62,8 +62,14 @@ class Query:
 			query['date'] = {"$gt" : datetime(int(date_start[2]), int(date_start[0]), int(date_start[1])), 
 							"$lt" : datetime(int(date_end[2]), int(date_end[0]), int(date_end[1])) }
 		#logging.info(query)
-		results = [res for res in conn.processed.commits.find(query)]
-		return json.dumps(results, cls=DateEncoder)
+		cursor = conn.processed.commits.find(query)
+		if params.has_key('sort') and params.sort == "1":
+			cursor = cursor.sort("date", 1)
+		results = []
+		for res in cursor:
+			if res.has_key('lat') and res.has_key('long'):
+				results.append(res)
+		return "jsonpcallback("+json.dumps(results, cls=DateEncoder)+")"
 		
 
 class Stats:
