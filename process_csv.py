@@ -151,7 +151,8 @@ class LocCSVWriter(CSVWriter):
             hash = {}
             hash['lat'] = key[0]
             hash['long'] = key[1]
-            hash['loc_count'] = len(val)
+            # subtract by one because of the ugly way locations are stored
+            hash['loc_count'] = max(len(val) - 1, 0)
             hash['authors'] = ', '.join([e for e in val.keys() if e != '_locations'])
             hash['locations'] = ' / '.join(Set(([e for e in val['_locations']])))
             formatted = self.format_commit(hash)
