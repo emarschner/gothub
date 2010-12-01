@@ -92,27 +92,28 @@ class LinkCSVWriter:
         """Write related commits as CSV to output file."""
         if 'location' not in c:
             c['location'] = 'unknown'
-        for parent in c['parents']:
-            formatted = ''
-            p = self.db.commits.find_one({'sha1': c['sha1']})
-            if p and 'lat' in p and 'long' in p:
-                if 'location' not in p:
-                    p['location'] = 'unknown'
-                c['path_id'] = self.path_id
-                c['path_order'] = 0
-                formatted += self.format_commit(c)
-                p['path_id'] = self.path_id
-                p['path_order'] = 1
-                formatted += self.format_commit(p)
-                self.path_id += 1
+        if 'lat' in c and 'long' in c:
+            for p_sha1 in c['parents']:
+                formatted = ''
+                p = self.db.commits.find_one({'sha1': p_sha1})
+                if p and 'lat' in p and 'long' in p:
+                    if 'location' not in p:
+                        p['location'] = 'unknown'
+                    c['path_id'] = self.path_id
+                    c['path_order'] = 0
+                    formatted += self.format_commit(c)
+                    p['path_id'] = self.path_id
+                    p['path_order'] = 1
+                    formatted += self.format_commit(p)
+                    self.path_id += 1
 
-            formatted = formatted.encode('ascii', 'xmlcharrefreplace')
-            try:            
-                self.output.write(formatted)
-            except UnicodeEncodeError as inst:
-                print c
-                unicode_errors += 1
-                print inst
+                    formatted = formatted.encode('ascii', 'xmlcharrefreplace')
+                    try:
+                        self.output.write(formatted)
+                    except UnicodeEncodeError as inst:
+                        print c
+                        unicode_errors += 1
+                        print inst
 
     def build_csv(self):
         self.output = open(self.filename, 'a')
