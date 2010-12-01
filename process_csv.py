@@ -1,10 +1,14 @@
 #!/usr/bin/env python
 # Brandon Heller
-# Generate CSV output suitable for Tableau exploration, with links connecting
-# related commits (parent/child relationships).
+# Generate CSV output suitable for Tableau exploration, with:
+# - links connecting related commits (parent/child relationships), OR
+# - one line per location
 #
-# Example call, for project 'rails', limiting to 100 commits:
+# Example call, for project 'rails', limiting to 100 commits, showing links:
 # > ./process_csv.py --project rails -f rails_100.csv -m 100
+#
+# Example showing location data:
+# > ./process_csv.py --project rails -f rails_loc.csv --type loc
 #
 # Same as above, plus January only (currently broken)
 # > ./process_csv.py --project rails -f rails_100.csv -m 100 --date_start 2010-01-01 --date_end 2010-02-01
@@ -23,6 +27,7 @@ import time
 from os.path import isfile
 from datetime import datetime
 import pymongo
+from sets import Set
 
 # Default output filename
 DEF_OUTPUT_FILENAME = 'gothub'
@@ -37,28 +42,19 @@ OUTPUT_EXT = '.csv'
 # Set to None to read all.
 DEF_MAX_COMMITS = None
 
+# Type of output to generate
+DEF_TYPE = 'link' # 'loc'
+
 # Hard # of max commits: 10M for now
 HARD_MAX_COMMITS = 1e7
 
 # Commits to read until printing out current commit
 PRINT_INTERVAL = 1000
 
-class LinkCSVWriter:
-    """Given a query and output filename, write CSV with geo links."""
-
-    def __init__(self, filename, max_commits, query):
-        self.filename = filename
-        self.query = query
-        self.max_commits = max_commits
-        print "using query: %s" % self.query
-        self.fields = ['sha1', 'location', 'lat', 'long', 'path_id',
-                       'path_order', 'date', 'author']
-        # double-quoted fields
-        self.fields_to_quote = ['location', 'date']
-        self.crlf = '\r\n' # yes, add Windows line ending
-        conn = pymongo.Connection()
-        self.db = conn['processed']
-        self.build_csv()
+class CSVWriter:
+    def __init__(self):
+        self.fields = []
+        self.fields_to_quote = []
     
     def csv_header(self):
         s = ""
@@ -88,32 +84,142 @@ class LinkCSVWriter:
         s += self.crlf
         return s
 
+class LocCSVWriter(CSVWriter):
+    """Given a query and output filename, write CSV with geo links."""
+
+    def __init__(self, filename, query, max_commits = None):
+        self.filename = filename
+        self.query = query
+        self.max_commits = max_commits
+        print "using query: %s" % self.query
+        self.fields = ['lat', 'long', 'loc_count', 'authors', 'locations']
+        self.fields_to_quote = ['authors', 'locations']
+        self.crlf = '\r\n' # yes, add Windows line ending
+        conn = pymongo.Connection()
+        self.db = conn['processed']
+        self.build_csv()
+
+    def process_commit(self, c):
+        """Note location/author in hash."""
+
+        if 'lat' in c and 'long' in c:
+            geo = (c['lat'], c['long'])
+            author = c['author']
+            location = ''
+            if 'location' in c:
+                location = c['location']
+            else:
+                location = None
+            if geo not in self.locations:
+                self.locations[geo] = {}
+                self.locations[geo]['_locations'] = []
+            if author not in self.locations[geo]:
+                if location:
+                    self.locations[geo]['_locations'].append(location)
+                self.locations[geo][author] = True
+
+    def build_csv(self):
+        self.output = open(self.filename, 'w')
+        self.output.write(self.csv_header())
+
+        print "[time] [commits parsed]"
+        start = time.time()
+
+        # locations[(lat, long)] = {author1: 1, author2: 1...}
+        self.locations = {}
+        cursor = self.db.commits.find(self.query)
+        i = 0
+        s = ''
+        for c in cursor:
+            self.process_commit(c)
+            i += 1
+
+            if i == HARD_MAX_COMMITS:
+                break
+            if self.max_commits and (i == self.max_commits):
+                break
+
+            if i % PRINT_INTERVAL == 0:
+                elapsed = float(time.time() - start)
+                print '%0.3f %i' % (elapsed, i)
+
+        elapsed = float(time.time() - start)
+        print "read %i commits in %0.3f seconds" % (i, elapsed)
+        print "%0.2f commits per second" % (i / elapsed)
+
+        for key, val in self.locations.iteritems():
+            hash = {}
+            hash['lat'] = key[0]
+            hash['long'] = key[1]
+            hash['loc_count'] = len(val)
+            hash['authors'] = ', '.join([e for e in val.keys() if e != '_locations'])
+            hash['locations'] = ' / '.join(Set(([e for e in val['_locations']])))
+            formatted = self.format_commit(hash)
+            formatted = formatted.encode('ascii', 'xmlcharrefreplace')
+            try:
+                self.output.write(formatted)
+            except UnicodeEncodeError as inst:
+                print c
+                unicode_errors += 1
+                print inst
+
+
+class LinkCSVWriter(CSVWriter):
+    """Given a query and output filename, write CSV with geo links."""
+
+    def __init__(self, filename, query, max_commits = None, links_only = False,
+                 diff_authors = False):
+        self.filename = filename
+        self.query = query
+        self.max_commits = max_commits
+        self.links_only = links_only
+        self.diff_authors = diff_authors
+        print "using query: %s" % self.query
+        self.fields = ['sha1', 'location', 'lat', 'long', 'path_id',
+                       'path_order', 'date', 'author']
+        # double-quoted fields
+        self.fields_to_quote = ['location', 'date']
+        self.crlf = '\r\n' # yes, add Windows line ending
+        conn = pymongo.Connection()
+        self.db = conn['processed']
+        self.build_csv()
+
+    def should_write_pair(self, c, p):
+        """Ensure valid geo values, plus check optional filters."""
+        retval = True
+        retval = retval and ('lat' in c and 'long' in c)
+        retval = retval and (p and 'lat' in p and 'long' in p)
+        if self.links_only:
+            retval = retval and (c['lat'] != p['lat'] and c['long'] != p['long'])
+        if self.diff_authors:
+            retval = retval and (c['author'] != p['author'])
+        return retval
+
     def process_commit(self, c):
         """Write related commits as CSV to output file."""
         if 'location' not in c:
             c['location'] = 'unknown'
-        if 'lat' in c and 'long' in c:
-            for p_sha1 in c['parents']:
+        for p_sha1 in c['parents']:
+            p = self.db.commits.find_one({'sha1': p_sha1})
+            if self.should_write_pair(c, p):
                 formatted = ''
-                p = self.db.commits.find_one({'sha1': p_sha1})
-                if p and 'lat' in p and 'long' in p:
-                    if 'location' not in p:
-                        p['location'] = 'unknown'
-                    c['path_id'] = self.path_id
-                    c['path_order'] = 0
-                    formatted += self.format_commit(c)
-                    p['path_id'] = self.path_id
-                    p['path_order'] = 1
-                    formatted += self.format_commit(p)
-                    self.path_id += 1
+                if 'location' not in p:
+                    p['location'] = 'unknown'
+                c['path_id'] = self.path_id
+                c['path_order'] = 0
+                formatted += self.format_commit(c)
+                p['path_id'] = self.path_id
+                p['path_order'] = 1
+                formatted += self.format_commit(p)
+                self.path_id += 1
 
-                    formatted = formatted.encode('ascii', 'xmlcharrefreplace')
-                    try:
-                        self.output.write(formatted)
-                    except UnicodeEncodeError as inst:
-                        print c
-                        unicode_errors += 1
-                        print inst
+                formatted = formatted.encode('ascii', 'xmlcharrefreplace')
+                try:
+                    self.output.write(formatted)
+                except UnicodeEncodeError as inst:
+                    print c
+                    unicode_errors += 1
+                    print inst
 
     def build_csv(self):
         self.output = open(self.filename, 'w')
@@ -153,7 +259,13 @@ class CSVFrontend:
         self.query = {}
         self.parse_args()
         self.build_query()
-        LinkCSVWriter(self.options.file_name, self.options.max_commits, self.query)
+        if self.options.type == 'link':
+            LinkCSVWriter(self.options.file_name, self.query,
+                      self.options.max_commits, self.options.links_only,
+                      self.options.diff_authors)
+        elif self.options.type == 'loc':
+            LocCSVWriter(self.options.file_name, self.query,
+                      self.options.max_commits)
 
     def parse_args(self):
         opts = OptionParser()
@@ -165,6 +277,14 @@ class CSVFrontend:
         opts.add_option("--no-output", action = "store_false",
                         default = True, dest = "output",
                         help = "print output at end?")
+        opts.add_option("--links_only", action = "store_true",
+                        default = False,
+                        help = "only write out links with different locations?")
+        opts.add_option("--diff_authors", action = "store_true",
+                        default = False,
+                        help = "only write out links with different authors")
+        opts.add_option("--type", type = 'string',
+                        default = DEF_TYPE, help = "optional longitude max")
         opts.add_option("--date_start", type = 'string',
                         default = None, help = "optional start date as YYYY-MM-DD")
         opts.add_option("--date_end", type = 'string',
@@ -214,7 +334,7 @@ def sample_query():
         "date": {"$gt": date_start, "$lt": date_end},
         "project": project
     }
-    LinkCSVWriter('sample_query.csv', None, query)
+    LinkCSVWriter('sample_query.csv', query)
 
 
 if __name__ == "__main__":
