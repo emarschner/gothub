@@ -46,10 +46,11 @@ PRINT_INTERVAL = 1000
 class LinkCSVWriter:
     """Given a query and output filename, write CSV with geo links."""
 
-    def __init__(self, filename, max_commits, query):
+    def __init__(self, filename, query, max_commits = None, links_only = False):
         self.filename = filename
         self.query = query
         self.max_commits = max_commits
+        self.links_only = links_only
         print "using query: %s" % self.query
         self.fields = ['sha1', 'location', 'lat', 'long', 'path_id',
                        'path_order', 'date', 'author']
@@ -88,32 +89,41 @@ class LinkCSVWriter:
         s += self.crlf
         return s
 
+    def should_write_pair(self, c, p):
+        """Should write a pair if both have geo values."""
+        if ('lat' in c and 'long' in c) and (p and 'lat' in p and 'long' in p):
+            if self.links_only:
+                return (c['lat'] != p['lat'] and c['long'] != p['long'])
+            else:
+                return True
+        else:
+            return False
+
     def process_commit(self, c):
         """Write related commits as CSV to output file."""
         if 'location' not in c:
             c['location'] = 'unknown'
-        if 'lat' in c and 'long' in c:
-            for p_sha1 in c['parents']:
+        for p_sha1 in c['parents']:
+            p = self.db.commits.find_one({'sha1': p_sha1})
+            if self.should_write_pair(c, p):
                 formatted = ''
-                p = self.db.commits.find_one({'sha1': p_sha1})
-                if p and 'lat' in p and 'long' in p:
-                    if 'location' not in p:
-                        p['location'] = 'unknown'
-                    c['path_id'] = self.path_id
-                    c['path_order'] = 0
-                    formatted += self.format_commit(c)
-                    p['path_id'] = self.path_id
-                    p['path_order'] = 1
-                    formatted += self.format_commit(p)
-                    self.path_id += 1
+                if 'location' not in p:
+                    p['location'] = 'unknown'
+                c['path_id'] = self.path_id
+                c['path_order'] = 0
+                formatted += self.format_commit(c)
+                p['path_id'] = self.path_id
+                p['path_order'] = 1
+                formatted += self.format_commit(p)
+                self.path_id += 1
 
-                    formatted = formatted.encode('ascii', 'xmlcharrefreplace')
-                    try:
-                        self.output.write(formatted)
-                    except UnicodeEncodeError as inst:
-                        print c
-                        unicode_errors += 1
-                        print inst
+                formatted = formatted.encode('ascii', 'xmlcharrefreplace')
+                try:
+                    self.output.write(formatted)
+                except UnicodeEncodeError as inst:
+                    print c
+                    unicode_errors += 1
+                    print inst
 
     def build_csv(self):
         self.output = open(self.filename, 'w')
@@ -153,7 +163,8 @@ class CSVFrontend:
         self.query = {}
         self.parse_args()
         self.build_query()
-        LinkCSVWriter(self.options.file_name, self.options.max_commits, self.query)
+        LinkCSVWriter(self.options.file_name, self.query,
+                      self.options.max_commits, self.options.links_only)
 
     def parse_args(self):
         opts = OptionParser()
@@ -165,6 +176,9 @@ class CSVFrontend:
         opts.add_option("--no-output", action = "store_false",
                         default = True, dest = "output",
                         help = "print output at end?")
+        opts.add_option("--links_only", action = "store_true",
+                        default = False,
+                        help = "only write out links with different locations?")
         opts.add_option("--date_start", type = 'string',
                         default = None, help = "optional start date as YYYY-MM-DD")
         opts.add_option("--date_end", type = 'string',
@@ -214,7 +228,7 @@ def sample_query():
         "date": {"$gt": date_start, "$lt": date_end},
         "project": project
     }
-    LinkCSVWriter('sample_query.csv', None, query)
+    LinkCSVWriter('sample_query.csv', query)
 
 
 if __name__ == "__main__":
