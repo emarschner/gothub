@@ -46,11 +46,13 @@ PRINT_INTERVAL = 1000
 class LinkCSVWriter:
     """Given a query and output filename, write CSV with geo links."""
 
-    def __init__(self, filename, query, max_commits = None, links_only = False):
+    def __init__(self, filename, query, max_commits = None, links_only = False,
+                 diff_authors = False):
         self.filename = filename
         self.query = query
         self.max_commits = max_commits
         self.links_only = links_only
+        self.diff_authors = diff_authors
         print "using query: %s" % self.query
         self.fields = ['sha1', 'location', 'lat', 'long', 'path_id',
                        'path_order', 'date', 'author']
@@ -90,14 +92,15 @@ class LinkCSVWriter:
         return s
 
     def should_write_pair(self, c, p):
-        """Should write a pair if both have geo values."""
-        if ('lat' in c and 'long' in c) and (p and 'lat' in p and 'long' in p):
-            if self.links_only:
-                return (c['lat'] != p['lat'] and c['long'] != p['long'])
-            else:
-                return True
-        else:
-            return False
+        """Ensure valid geo values, plus check optional filters."""
+        retval = True
+        retval = retval and ('lat' in c and 'long' in c)
+        retval = retval and (p and 'lat' in p and 'long' in p)
+        if self.links_only:
+            retval = retval and (c['lat'] != p['lat'] and c['long'] != p['long'])
+        if self.diff_authors:
+            retval = retval and (c['author'] != p['author'])
+        return retval
 
     def process_commit(self, c):
         """Write related commits as CSV to output file."""
@@ -164,7 +167,8 @@ class CSVFrontend:
         self.parse_args()
         self.build_query()
         LinkCSVWriter(self.options.file_name, self.query,
-                      self.options.max_commits, self.options.links_only)
+                      self.options.max_commits, self.options.links_only,
+                      self.options.diff_authors)
 
     def parse_args(self):
         opts = OptionParser()
@@ -179,6 +183,9 @@ class CSVFrontend:
         opts.add_option("--links_only", action = "store_true",
                         default = False,
                         help = "only write out links with different locations?")
+        opts.add_option("--diff_authors", action = "store_true",
+                        default = False,
+                        help = "only write out links with different authors")
         opts.add_option("--date_start", type = 'string',
                         default = None, help = "optional start date as YYYY-MM-DD")
         opts.add_option("--date_end", type = 'string',
