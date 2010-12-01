@@ -12,7 +12,7 @@
 	.layer path {
 	  fill: lightsteelblue;
 	  fill-opacity: .5;
-	  stroke: steelblue;
+	  /*stroke: steelblue;*/
 	}
 
 	.layer circle {
@@ -34,8 +34,8 @@ $(function(){
 
 	map = po.map()
 	    .container(document.getElementById("map").appendChild(po.svg("svg")))
-	    .center({lat: 37.787, lon: -122.228})
-	    .zoom(12)
+	    .center({lat: 0, lon: 0})
+	    .zoom(2)
 	    .add(po.interact());
 
 	map.add(po.image()
@@ -96,14 +96,49 @@ $(function(){
 	map.add(po.compass()
 	    .pan("none"));
 	
+	var project;
+	if ("project" in urlParams)
+		project = urlParams["project"];
+	else
+		project = "rails"
 	$.ajax({
-		        url: 'http://nfcm5:8080/query?project=rails&sort=1',
+		        url: 'http://nfcm5:8080/query?project='+project+'&sort=1',
 		        dataType: "jsonp",
 				jsonpCallback: "jsonpcallback",
 		        success: function(data, status)
 				{
-					geoData.setData(data);
-					geoData.showNext();
+					//geoData.setData(data);
+					//geoData.showNext();
+					var arr = []
+					for (var i = 0; i < data.length; i++)
+					{
+						var l = data[i];
+						//arr.push([ [l[0].long, l[0].lat], [l[1].long, l[1].lat] ]);
+						map.add(po.geoJson()
+						.features([
+							{
+							  "geometry": {
+							    "coordinates": [ [l[0].long, l[0].lat], [l[1].long, l[1].lat] ],
+							    "type": "LineString"
+							  }
+							},
+							]).on("show", 
+									po.stylist().attr("stroke", function(d) { return "black"; })
+												.attr("stroke-opacity", function(d) { return 0.2;}))
+						);
+					}
+					/*map.add(po.geoJson()
+					.features([
+						{
+						  "geometry": {
+						    "coordinates": arr,
+						    "type": "MultiLineString"
+						  }
+						},
+						]).on("load", 
+								po.stylist()
+											.attr("stroke-opacity", function(d) { return 0.2;}))
+					);*/
 				}
 
 	});
@@ -151,6 +186,17 @@ var geoData = (function()
 	};
 })();
 
+var urlParams = {};
+(function () {
+    var e,
+        a = /\+/g,  // Regex for replacing addition symbol with a space
+        r = /([^&;=]+)=?([^&;]*)/g,
+        d = function (s) { return decodeURIComponent(s.replace(a, " ")); },
+        q = window.location.search.substring(1);
+
+    while (e = r.exec(q))
+       urlParams[d(e[1])] = d(e[2]);
+})();
 
 
 	    </script>
