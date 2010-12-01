@@ -116,7 +116,7 @@ class LinkCSVWriter:
                         print inst
 
     def build_csv(self):
-        self.output = open(self.filename, 'a')
+        self.output = open(self.filename, 'w')
         self.output.write(self.csv_header())
 
         print "[time] [commits parsed]"
