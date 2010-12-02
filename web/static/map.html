@@ -7,6 +7,11 @@
 	<!--<script type="text/javascript" src="map.js"></script>-->
 	   <style type="text/css">
 
+	html
+	{
+		height:800px;
+		width:1024px;
+	}
 	.layer path {
 	  fill: lightsteelblue;
 	  fill-opacity: .5;
@@ -102,7 +107,7 @@ $(function(){
 
 	map = po.map()
 	    .container(document.getElementById("map").appendChild(po.svg("svg")))
-	    .center({lat: 0, lon: 0})
+	    .center({lat: 20, lon: 10})
 	    .zoom(2)
 	    .add(po.interact());
 
@@ -170,7 +175,7 @@ $(function(){
 	else
 		project = "rails"
 	$.ajax({
-		        url: 'http://nfcm5:8080/query?project='+project+'&sort=1',
+		        url: 'http://nfcm5:8080/query'+window.location.search,
 		        dataType: "jsonp",
 				jsonpCallback: "jsonpcallback",
 		        success: function(data, status)
