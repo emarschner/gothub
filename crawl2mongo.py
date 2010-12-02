@@ -48,41 +48,43 @@ def main():
 				id = db.users.insert(user)
 				queue.users.insert({"id" : id})
 	elif options.commits and options.repo_name and options.user_name:
-		cmts = obj["commits"]
-		for cmt in cmts:
-			existing = db.commits.find_one({"id" : cmt["id"]})
-			long_name = options.user_name + '/' + options.repo_name
-			if not existing:
-				cmt["repo_n"] = [options.repo_name]
-				cmt["repo_l"] = [long_name]
-				id = db.commits.insert(cmt)
-				queue.commits.insert({"id" : id})
-			else:
-				changed = False
-				if cmt.has_key("repo_n"):
-					if not (options.repo_name in cmt["repo_n"]):
-						cmt["repo_n"].append(options.repo_name)
-						changed = True
-				else:
+		if "commits" in obj:
+			cmts = obj["commits"]
+			for cmt in cmts:
+				existing = db.commits.find_one({"id" : cmt["id"]})
+				long_name = options.user_name + '/' + options.repo_name
+				if not existing:
 					cmt["repo_n"] = [options.repo_name]
-					changed = True
-				if cmt.has_key("repo_l"):
-					if not (long_name in cmt["repo_l"]):
-						cmt["repo_l"].append(long_name)
-						changed = True
-				else:
 					cmt["repo_l"] = [long_name]
-					changed = True
-				if changed:
-					db.commits.update({"id": cmt["id"]}, {"$set" : {"repo_l" : cmt["repo_l"], "repo_n" : cmt["repo_n"]}})
-					queue.commits.insert({"id": existing["_id"]})
+					id = db.commits.insert(cmt)
+					queue.commits.insert({"id" : id})
+				else:
+					changed = False
+					if cmt.has_key("repo_n"):
+						if not (options.repo_name in cmt["repo_n"]):
+							cmt["repo_n"].append(options.repo_name)
+							changed = True
+					else:
+						cmt["repo_n"] = [options.repo_name]
+						changed = True
+					if cmt.has_key("repo_l"):
+						if not (long_name in cmt["repo_l"]):
+							cmt["repo_l"].append(long_name)
+							changed = True
+					else:
+						cmt["repo_l"] = [long_name]
+						changed = True
+					if changed:
+						db.commits.update({"id": cmt["id"]}, {"$set" : {"repo_l" : cmt["repo_l"], "repo_n" : cmt["repo_n"]}})
+						queue.commits.insert({"id": existing["_id"]})
 	elif options.repos_show and options.repo_name and options.user_name:
 		key = obj.keys()[0]
-		for sub_key in obj[key].keys():
-			clean_key = sub_key.replace(".", "_")
-			if clean_key != sub_key:
-				obj[key][clean_key] = obj[key][sub_key]
-				del obj[key][sub_key]
+		if isinstance(obj[key], dict) :
+			for sub_key in obj[key].keys():
+				clean_key = sub_key.replace(".", "_")
+				if clean_key != sub_key:
+					obj[key][clean_key] = obj[key][sub_key]
+					del obj[key][sub_key]
 		existing = db.repos.find_one({"name" : options.repo_name, "owner" : options.user_name})
 		if existing:
 			db.repos.update({"name": options.repo_name, "owner" : options.user_name}, {"$set" : {key : obj[key]}})
