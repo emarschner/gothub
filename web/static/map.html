@@ -10,6 +10,7 @@
     <!--<script type="text/javascript" src="map.js"></script>-->
        <style type="text/css">
 
+	#map { position: relative; }
     .layer path {
       fill: lightsteelblue;
       fill-opacity: .5;
@@ -22,10 +23,12 @@
       stroke: brown;
     }
 
-    html, body {
-      height: 100%;
-    }
-
+    html
+	{
+		height:800px;
+		width:1024px;
+	}
+	
     body {
       margin: 0;
       background: #E5E0D9;
@@ -152,7 +155,7 @@ $(function(){
 
     map = po.map()
         .container(document.getElementById("map").appendChild(po.svg("svg")))
-	    .center({lat: 20, lon: 10})
+	    .center({lat: -10, lon: 10})
 	    .zoom(2)
         .add(po.interact());
 
