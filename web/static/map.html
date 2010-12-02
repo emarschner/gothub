@@ -3,134 +3,270 @@
     <title>Exploring Home Mortgages</title>
     <script type="text/javascript" src="http://polymaps.org/protodata.min.js?3.2"></script>
     <script type="text/javascript" src="http://polymaps.org/polymaps.min.js?2.2.0"></script>
-    <script type="text/javascript" src="js/jquery.min.js"></script>
-	<script type="text/javascript" src="js/jqueryui.min.js"></script>
-    
-	<link href="css/jqueryui.css" rel="stylesheet" type="text/css"/>
-	<link href="http://code.jquery.com/mobile/1.0a1/jquery.mobile-1.0a1.min.css" rel="stylesheet" type="text/css"/>
-	<link href="css/style.css" rel="stylesheet" type="text/css"/>
+    <script type="text/javascript" src="jquery.min.js"></script>
+	<!--<script type="text/javascript" src="map.js"></script>-->
+	   <style type="text/css">
+
+	.layer path {
+	  fill: lightsteelblue;
+	  fill-opacity: .5;
+	  /*stroke: steelblue;*/
+	}
+
+	.layer circle {
+	  fill: lightcoral;
+	  fill-opacity: .5;
+	  stroke: brown;
+	}
+
+	html, body {
+	  height: 100%;
+	}
+
+	body {
+	  margin: 0;
+	  background: #E5E0D9;
+	}
+
+	svg {
+	  display: block;
+	  overflow: hidden;
+	  width: 100%;
+	  height: 100%;
+	}
+
+	#copy {
+	  position: absolute;
+	  left: 0;
+	  bottom: 4px;
+	  padding-left: 5px;
+	  font: 9px sans-serif;
+	  color: #fff;
+	  cursor: default;
+	}
+
+	#copy a {
+	  color: #fff;
+	}
+
+	.compass .back {
+	  fill: #eee;
+	  fill-opacity: .8;
+	}
+
+	.compass .fore {
+	  stroke: #999;
+	  stroke-width: 1.5px;
+	}
+
+	.compass rect.back.fore {
+	  fill: #999;
+	  fill-opacity: .3;
+	  stroke: #eee;
+	  stroke-width: 1px;
+	  shape-rendering: crispEdges;
+	}
+
+	.compass .direction {
+	  fill: none;
+	}
+
+	.compass .chevron {
+	  fill: none;
+	  stroke: #999;
+	  stroke-width: 5px;
+	}
+
+	.compass .zoom .chevron {
+	  stroke-width: 4px;
+	}
+
+	.compass .active .chevron, .compass .chevron.active {
+	  stroke: #fff;
+	}
+
+	.compass.active .active .direction {
+	  fill: #999;
+	}
+
+	    </style>
   </head>
   <body>
-	<div id="tooltip"><div class="tipHeader"></div><div class="tipBody"></div><div class="tipFooter"></div></div>
-    <div id="sidebar">
-      <div class="title">Exploring Home Mortgages</div>
-      <div class="subtitle">Ravi Parikh and Evan Rosenfeld</div>
-	<ul class="ui-listview ui-listview-inset ui-corner-all ui-controlgroup ui-controlgroup-vertical ui-shadow">
-		<li class="ui-li ui-li-divider ui-btn ui-bar-b ui-corner-top" id="spotlight_title">Spotlight</li>
-		<li class="ui-li ui-li-divider" id="spotlight_body1" style="border-bottom: 1px solid #456F9A; display:none">
-			<div id="region_name">(none selected)</div>
-			<div class="filter_title">Filter By Income</div>
-			<div id="amount" style="border:0; color:#f6931f; font-weight:bold;"></div>
-			<div id="num_homes" style="border:0; color:#f6931f; font-weight:bold;"></div>
-			<!-- <div id="slider-range"></div> -->
-			<div class="range_box">
-			  Min: $<input type="text" name="range_min" value="0" id="range_min" class="range_input"/>
-			</div>
-			<div class="range_box">
-			  Max: $<input type="text" name="range_min" value="0" id="range_max" class="range_input"/>
-			</div>
-		</li>
-		<li class="ui-li ui-li-divider ui-corner-bottom" id="spotlight_body2">
-            <div class="filter_title" id="filter_bottom_title">Select a region for details</div>
-			<div id="summary" style="display:none;">
-			</div>
-		</li>
-	</ul>
-      <form name="filter_form" id="filter_form">
-		<ul class="ui-listview ui-listview-inset ui-corner-all ui-controlgroup ui-controlgroup-vertical ui-shadow">
-			<li class="ui-li ui-li-divider ui-btn ui-bar-b ui-corner-top">Settings</li>
-			<li class="ui-li ui-li-divider" style="border-bottom: 1px solid #456F9A;">
-				<div class="filter_title">Aggregate By</div>
-	            <div class="field">
-					<input type="radio" name="geo" value="county" checked /><span>County</span>
-				</div>
-				<div class="field">
-	            	<input type="radio" name="geo" value="state" /><span>State</span>
-				</div>
-			</li>
-			<li class="ui-li ui-li-divider ui-corner-bottom">
-	            <div class="filter_title">Color By</div>
-				<div class="field">
-	            	<input type="radio" name="metric" value="rate_spread" checked /><span>Rate spread</span>
-				</div>
-	            <div class="field">
-					<input type="radio" name="metric" value="income" /><span>Income</span>
-				</div>
-	            <div class="field">
-					<input type="radio" name="metric" value="loan_amount" /><span>Loan amount</span>
-				</div>
-			</li>
-		</ul>
-	</form>
-	<ul class="ui-listview ui-listview-inset ui-corner-all ui-controlgroup ui-controlgroup-vertical ui-shadow">
-		<li class="ui-li ui-li-divider ui-btn ui-bar-b ui-corner-top ui-corner-bottom"><a href="javascript:void(0)" id="about_link">About this visualization</a></li>
-	</ul>
-	</div>
-	<ul class="legend ui-listview ui-listview-inset ui-corner-all ui-controlgroup ui-controlgroup-vertical ui-shadow">
-		<li class="ui-li ui-li-divider ui-btn ui-bar-b ui-corner-top">Legend</li>
-		<li class="ui-li ui-li-divider">
-		    <div class="legend_tile" style="background-color: #005">
-		    </div>
-		    <div class="legend_name" id="legend_name1">
-		      0 - 3.5%
-		    </div>
-		    <div style="clear:both"></div>
-		</li>
-		<li class="ui-li ui-li-divider">
-		    <div class="legend_tile" style="background-color: #027">
-		    </div>
-		    <div class="legend_name" id="legend_name2">
-		      3.5 - 4.0%
-		    </div>
-		    <div style="clear:both"></div>
-		</li>
-		<li class="ui-li ui-li-divider">
-		    <div class="legend_tile" style="background-color: #049">
-		    </div>
-		    <div class="legend_name" id="legend_name3">
-		      4.0 - 4.5%
-		    </div>
-		    <div style="clear:both"></div>
-		</li>
-		<li class="ui-li ui-li-divider">
-		    <div class="legend_tile" style="background-color: #16a">
-		    </div>
-		    <div class="legend_name" id="legend_name4">
-		      4.5 - 5.0%
-		    </div>
-		    <div style="clear:both"></div>
-		</li>
-		<li class="ui-li ui-li-divider">
-		    <div class="legend_tile" style="background-color: #37d">
-		    </div>
-		    <div class="legend_name" id="legend_name5">
-		      5.0 - 5.5%
-		    </div>
-		    <div style="clear:both"></div>
-		</li>
-		<li class="ui-li ui-li-divider">
-		    <div class="legend_tile" style="background-color: #58f">
-		    </div>
-		    <div class="legend_name" id="legend_name6">
-		      >5.5%
-		    </div>
-		    <div style="clear:both"></div>
-		</li>
-	</ul>
-
-    <div id="loading">
-      <div class="loading_inner">
-        Updating Map . . .<br/>
-        <img src="loading.gif" />
-      </div>
-    </div>
-    <div id="about_popup">
-      A visualization of home mortgage loans issued between 2007-09, by Ravi Parikh and Evan Rosenfeld. Data from Home Mortgage Disclosure Act (HMDA).
-      <br/><br/>
-      (click to close)
-    </div>
     <div id="map">
-      <script type="text/javascript" src="subprime.js"></script>
     </div>
+	   <script type="text/javascript">
+map = null;
+po = org.polymaps;
+
+$(function(){
+
+	map = po.map()
+	    .container(document.getElementById("map").appendChild(po.svg("svg")))
+	    .center({lat: 0, lon: 0})
+	    .zoom(2)
+	    .add(po.interact());
+
+	map.add(po.image()
+	    .url(po.url("http://{S}tile.cloudmade.com"
+	    + "/1a1b06b230af4efdbb989ea99e9841af" // http://cloudmade.com/register
+	    + "/998/256/{Z}/{X}/{Y}.png")
+	    .hosts(["a.", "b.", "c.", ""]))
+	);
+
+/*	map.add(po.geoJson()
+	    .features([
+
+	{
+	  "geometry": {
+	    "coordinates": [-122.289365, 37.816873],
+	    "type": "Point"
+	  }
+	},
+	{
+	  "geometry": {
+	    "coordinates": [[[
+	      [-122.289365, 37.816873],
+	      [-122.273176, 37.812709],
+	      [-122.278686, 37.807282],
+	      [-122.291530, 37.810804],
+	      [-122.289365, 37.816873]
+	    ]]],
+	    "type": "MultiPolygon"
+	  },
+	  "type": "Feature",
+	  "id": "beat:05X",
+	  "properties": {"name": "05X"}
+	},
+	{
+	  "geometry": {
+	    "coordinates": [-121.289365, 37.816873],
+	    "type": "Point"
+	  }
+	},
+	{
+	  "geometry": {
+	    "coordinates": [-121.289365, 37.816873],
+	    "type": "Point"
+	  }
+	},
+	{
+		"geometry" : { "type": "LineString",
+		  "coordinates": [ [100.0, 0.0], [101.0, 1.0] ]
+		  }
+	}
+	    ]).on("load", 
+				po.stylist().attr("stroke", function(d) { return "green"; })
+							.attr("stroke-width", function(d) { return 5;})
+							.attr("stroke-opacity", function(d) { return 0.2;})
+			)
+	);
+*/
+	map.add(po.compass()
+	    .pan("none"));
+	
+	var project;
+	if ("project" in urlParams)
+		project = urlParams["project"];
+	else
+		project = "rails"
+	$.ajax({
+		        url: 'http://nfcm5:8080/query?project='+project+'&sort=1',
+		        dataType: "jsonp",
+				jsonpCallback: "jsonpcallback",
+		        success: function(data, status)
+				{
+					//geoData.setData(data);
+					//geoData.showNext();
+					var arr = []
+					for (var i = 0; i < data.length; i++)
+					{
+						var l = data[i];
+						//arr.push([ [l[0].long, l[0].lat], [l[1].long, l[1].lat] ]);
+						map.add(po.geoJson()
+						.features([
+							{
+							  "geometry": {
+							    "coordinates": [ [l[0].long, l[0].lat], [l[1].long, l[1].lat] ],
+							    "type": "LineString"
+							  }
+							},
+							]).on("show", 
+									po.stylist().attr("stroke", function(d) { return "black"; })
+												.attr("stroke-opacity", function(d) { return 0.2;}))
+						);
+					}
+					/*map.add(po.geoJson()
+					.features([
+						{
+						  "geometry": {
+						    "coordinates": arr,
+						    "type": "MultiLineString"
+						  }
+						},
+						]).on("load", 
+								po.stylist()
+											.attr("stroke-opacity", function(d) { return 0.2;}))
+					);*/
+				}
+
+	});
+	
+});
+
+var geoData = (function()
+{
+	var data;
+	var idx = 0;
+	var point = null;
+	var timeout = null;
+	
+	var showNext = function()
+	{
+		if (point != null)
+			map.remove(point)
+		var obj = data[idx];
+		idx = idx + 1;
+		point = po.geoJson().features([
+			{
+			  "geometry": {
+			    "coordinates": [obj.long, obj.lat],
+			    "type": "Point"
+			  }
+			}]);
+		map.add(point);
+		timeout = setTimeout("geoData.showNext()", 100);
+	};
+	
+	var setData = function(theData)
+	{
+		data = theData;
+	};
+	
+	var stop = function()
+	{
+		clearTimeout(timeout);
+	};
+	
+	return {
+		setData : setData,
+		showNext : showNext,
+		stop : stop
+	};
+})();
+
+var urlParams = {};
+(function () {
+    var e,
+        a = /\+/g,  // Regex for replacing addition symbol with a space
+        r = /([^&;=]+)=?([^&;]*)/g,
+        d = function (s) { return decodeURIComponent(s.replace(a, " ")); },
+        q = window.location.search.substring(1);
+
+    while (e = r.exec(q))
+       urlParams[d(e[1])] = d(e[2]);
+})();
+
+
+	    </script>
   </body>
 </html>

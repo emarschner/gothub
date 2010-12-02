@@ -9,6 +9,7 @@ from datetime import datetime
 logging.basicConfig(level=logging.INFO)
 
 conn = pymongo.Connection()
+db = conn.processed
 
 urls = (
     '/', 'Index',
@@ -62,9 +63,19 @@ class Query:
 			query['date'] = {"$gt" : datetime(int(date_start[2]), int(date_start[0]), int(date_start[1])), 
 							"$lt" : datetime(int(date_end[2]), int(date_end[0]), int(date_end[1])) }
 		#logging.info(query)
-		results = [res for res in conn.processed.commits.find(query)]
-		return json.dumps(results, cls=DateEncoder)
-		
+		cursor = db.commits.find(query)
+		if params.has_key('sort') and params.sort == "1":
+			cursor = cursor.sort("date", 1)
+		results = []
+		seen = set()
+		for c in cursor:
+			if (not c['sha1'] in seen) and c.has_key('lat') and c.has_key('long'):
+				for p_sha1 in c['parents']:
+					p = db.commits.find_one({'sha1': p_sha1})
+					if p and p.has_key('lat') and p.has_key('long'):
+						results.append([c, p])
+				seen.add(c['sha1'])
+		return "jsonpcallback("+json.dumps(results, cls=DateEncoder)+")"
 
 class Stats:
 
@@ -82,3 +93,4 @@ app = web.application(urls, globals())
 
 if __name__ == '__main__':
     app.run()
+
