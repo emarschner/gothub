@@ -28,7 +28,7 @@ var geo_freq = function() {
 };
 
 var loc_by_freq = function() {
-    m = function() {if (this.location) {emit(this.location), 1);}};
+    m = function() {if (this.location) {emit(this.location, 1);}};
     res = db.commits.mapReduce(m, reduce_count);
     total_commits = res.counts.input;
     loc_commits = res.counts.emit;
