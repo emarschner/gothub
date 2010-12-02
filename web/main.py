@@ -93,7 +93,7 @@ class Query:
 
         for p_sha1 in c['parents']:
           p = db.commits.find_one({'sha1': p_sha1})
-          if p and p.has_key('lat') and p.has_key('long'):
+          if p and p.has_key('lat') and p.has_key('long') and (p['lat'] != c['lat']) and (p['long'] != c['long']) :
             results['links'].append([c, p])
         seen.add(c['sha1'])
 
