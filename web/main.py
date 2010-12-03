@@ -61,6 +61,8 @@ class Query:
     if params.has_key('date_start') and params.has_key('date_end'):
       date_start = params.date_start.split('/')
       date_end = params.date_end.split('/')
+      # expected web input: MM/DD/YYYY
+      # datetime input: year, month, day
       query['date'] = {"$gt" : datetime(int(date_start[2]), int(date_start[0]), int(date_start[1])), 
               "$lt" : datetime(int(date_end[2]), int(date_end[0]), int(date_end[1])) }
     #logging.info(query)
