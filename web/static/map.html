@@ -219,69 +219,89 @@ $(function(){
     
     var project;
     if ("project" in urlParams) project = urlParams["project"];
-    else project = "rails"
-    function load(e) {
-        e.features.forEach(function(f) {
-            var c = $(f.element),
-                g = c.parent().add("svg:g", c);
-
-            g.attr("transform", "translate(" + c.attr("cx") + "," + c.attr("cy") + ")");
-
-            g.add("svg.circle")
-                .attr("r", 20)
-                .attr("fill", "black");
-        });
-    }
+    else project = "rails";
+    var lines;
+    if ('lines' in urlParams) lines = eval(urlParams['lines']);
+    else lines = true;
+    var circles;
+    if ('circles' in urlParams) circles = eval(urlParams['circles']);
+    else circles = true;
+    var names;
+    if ('names' in urlParams) names = eval(urlParams['names']);
+    else names = false;
+    var scale;
+    if ('scale' in urlParams) scale = eval(urlParams['scale']);
+    else scale = 1;
     $.ajax({
-               	url: 'http://nfcm5:8080/query'+window.location.search,
-                dataType: "jsonp",
-                jsonpCallback: "jsonpcallback",
-                success: function(data, status)
+        url: '/query' + window.location.search,
+        dataType: "jsonp",
+        jsonpCallback: "jsonpcallback",
+        success: function(data, status)
+        {
+            link_data = data.links;
+            location_data = data.locations;
+            stats_data = data.stats;
+            //geoData.setData(data);
+            //geoData.showNext();
+            var arr = []
+            if (lines) {
+                for (var i = 0; i < link_data.length; i++)
                 {
-                    link_data = data.links;
-                    location_data = data.locations;
-                    stats_data = data.stats;
-                    //geoData.setData(data);
-                    //geoData.showNext();
-                    var arr = []
-                    for (var i = 0; i < link_data.length; i++)
-                    {
-                        var l = link_data[i];
-                        //arr.push([ [l[0].long, l[0].lat], [l[1].long, l[1].lat] ]);
-                        map.add(po.geoJson().features([
-                            {
-                                "geometry": {
-                                    "coordinates": [ [l[0].long, l[0].lat], [l[1].long, l[1].lat] ],
-                                    "type": "LineString"
-                                }
+                    var l = link_data[i];
+                    //arr.push([ [l[0].long, l[0].lat], [l[1].long, l[1].lat] ]);
+                    map.add(po.geoJson().features([
+                        {
+                            "geometry": {
+                                "coordinates": [ [l[0].long, l[0].lat], [l[1].long, l[1].lat] ],
+                                "type": "LineString"
                             }
-                        ]).on("load",
-                                po.stylist().attr("stroke", "black")
-                                            .attr("stroke-opacity", 0.2)
-                                            .attr("r", 50)
-                                            .style("fill", "black")
-                                            .style("stroke", "black"))
-                        );
-                    }
-                    for (var i = 0; i < location_data.length; i++) {
-                        var l = location_data[i]
-                        map.add(po.geoJson().features([
-                            {
-                                "geometry": {
-                                    "coordinates": [ l.long, l.lat ],
-                                    "type": "Point"
-                                },
-                                "size": l.loc_count
-                            }
-                        ]).on(
-                            "load",
-                            po.stylist().style('fill', 'green')
-                                        .style('stroke', 'black')
-                                        .attr('title', 'foobar')
-                                        .style('opacity', function(d) { return (d.size * 5) / 10; })
-                                        .attr('r', function(d) { return Math.sqrt(d.size * 50); })
-                        ));
+                        }
+                    ]).on("load",
+                            po.stylist().attr("stroke", "black")
+                                        .attr("stroke-opacity", 0.2)
+                                        .attr("r", 50)
+                                        .style("fill", "black")
+                                        .style("stroke", "black"))
+                    );
+                }
+            }
+            if (circles) {
+                for (var i = 0; i < location_data.length; i++) {
+                    var l = location_data[i]
+                    map.add(po.geoJson().features([
+                        {
+                            "geometry": {
+                                "coordinates": [ l.long, l.lat ],
+                                "type": "Point"
+                            },
+                            "size": l.loc_count
+                        }
+                    ]).on(
+                        'load',
+                        function(e) {
+                            e.features.forEach(function(f) {
+                                var p = n$(f.element);
+                                /*
+                                p.on('mouseover', function() {
+                                    point = n$(this);
+                                    point.style('fill', 'black');
+                                    point.style('opacity', 1);
+                                });
+                                p.on('mouseout', function() {
+                                    point = n$(this);
+                                    point.style('opacity', 'green');
+                                    point.style('opacity', f.data.size / 2);
+                                });
+                                */
+                                p.style('fill', 'green')
+                                p.style('stroke', 'black')
+                                p.style('opacity', f.data.size / 2)
+                                p.attr('r', Math.sqrt(f.data.size * 50 * scale))
+                            });
+                        }
+                    ));
 
+                    if (names) {
                         map.add(po.geoJson().features([
                             {
                                 "geometry": {
@@ -294,17 +314,20 @@ $(function(){
                         ]).on(
                             'load',
                             function(e) {
-                                for (var i = 0; i < e.features.length; i++) {
-                                    var p = n$(e.features[i].element);
+                                e.features.forEach(function(f) {
+                                    var p = n$(f.element);
                                     p.attr('opacity', 0);
-                                    if (e.features[i].data.location) {
+                                    if (f.data.location) {
                                         var g = p.parent().add('svg:g', p);
                                         g.attr('transform', p.attr('transform'));
+                                        var r = Math.sqrt(f.data.size * 50);
                                         g.add('svg:text')
-                                            .attr('transform', 'translate(' + (Math.sqrt(e.features[i].data.size * 50) + 3) + ', 3)')
+                                            .attr('transform', 'translate(' + (r + 3) + ',' + (-r) + ')')
                                             .style('fill', 'black')
+                                            .style('stroke', 'green')
+                                            .style('opacity', 0.5)
                                             .style('font-size', 12)
-                                            .text(e.features[i].data.location);
+                                            .text(f.data.location);
                                         /*
                                         g.add('svg:rect')
                                             .attr('x', -3)
@@ -315,29 +338,29 @@ $(function(){
                                             .style('fill', 'black');
                                         */
                                     }
-                                };
+                                });
                             }
                         ));
                     }
-                    $('#people_count').text($.formatNumber(stats_data.author_count, {format:'#,###', locale:'us'}));
-                    $('#commit_count').text($.formatNumber(stats_data.commit_count, {format:'#,###', locale:'us'}));
-                    $('#project_name').text(project);
-                    /*map.add(po.geoJson()
-                    .features([
-                        {
-                          "geometry": {
-                            "coordinates": arr,
-                            "type": "MultiLineString"
-                          }
-                        },
-                        ]).on("load", 
-                                po.stylist()
-                                            .attr("stroke-opacity", function(d) { return 0.2;}))
-                    );*/
                 }
-
+            }
+            $('#people_count').text($.formatNumber(stats_data.author_count, {format:'#,###', locale:'us'}));
+            $('#commit_count').text($.formatNumber(stats_data.commit_count, {format:'#,###', locale:'us'}));
+            $('#project_name').text(project);
+            /*map.add(po.geoJson()
+            .features([
+                {
+                    "geometry": {
+                    "coordinates": arr,
+                    "type": "MultiLineString"
+                    }
+                },
+                ]).on("load", 
+                        po.stylist()
+                                    .attr("stroke-opacity", function(d) { return 0.2;}))
+            );*/
+        }
     });
-    
 });
 
 var geoData = (function()
@@ -346,7 +369,6 @@ var geoData = (function()
     var idx = 0;
     var point = null;
     var timeout = null;
-    
     var showNext = function()
     {
         if (point != null)
