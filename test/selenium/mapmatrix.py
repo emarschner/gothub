@@ -20,6 +20,14 @@ import os
 from optparse import OptionParser
 from screenshot import ScreenshotGen
 from subprocess import Popen
+import time
+
+# Filename extension
+EXT = ".png"
+
+# Sleep time to get past ImageMagick issue.
+SLEEP_TIME_SEC = 1
+
 
 def getMonthArr(s_date, e_date):
     s_date = s_date.split('/')
@@ -46,9 +54,25 @@ def getMonthArr(s_date, e_date):
     return retVal
 
 
+
+# convert is part of imagemagick.
+# +append puts images side-by-side.
+def merge_files(dir, img_names, merged_filename, type):
+    append_type = None
+    if type == 'horizontal':
+        append_type = "+append"
+    elif type == 'vertical':
+        append_type = "-append"
+    else:
+        raise Exception("Invalid merge_files type: %s" % type)
+    args = ["convert"] + img_names + [append_type, merged_filename]
+    print "merging files (%s): %s" % (type, args)
+    os.chdir(dir)
+    Popen(args)
+
+
 def gen_dates(s, dir, project, month_start, month_end,
               cumulative = False, dry = True, merge = False):
-    ext = ".png"
     months = getMonthArr(month_start, month_end)
     date_start = months[0][0] + "/1/" + months[0][1]
     query = {}
@@ -64,20 +88,18 @@ def gen_dates(s, dir, project, month_start, month_end,
             query['date_start'] = months[i][0] + "/1/" + months[i][1]
             query['date_end'] = months[i+1][0] + "/1/" + months[i+1][1]
         img_name += "-" + months[i][1] + '-' + months[i][0]
-        img_names.append(img_name + ext)
+        img_names.append(img_name + EXT)
         print "query: %s" % query
         if not dry:
             s.generate(dir, img_name, query)
     if merge:
         merged_filename = project
         if cumulative: merged_filename += "-c"
-        merged_filename += ext
-        # convert is part of imagemagick.
-        # +append puts images side-by-side.
-        args = ["convert"] + img_names + ["+append", merged_filename]
-        print args
-        os.chdir(dir)
-        Popen(args)
+        merged_filename += EXT
+        merge_files(dir, img_names, merged_filename, 'horizontal')
+        return merged_filename
+    else:
+        return None
 
 
 class MapMatrix:
@@ -85,18 +107,26 @@ class MapMatrix:
     def __init__(self):
         self.parse_args()
         s = ScreenshotGen()
+        month_start = self.options.month_start
+        month_end = self.options.month_end
+        cumulative = self.options.cumulative
+        dir = self.image_dir
+        dry = self.options.dry_run
+        merge = self.options.merge
+        merged_filenames = []
         for p in self.projects:
             if self.options.monthly:
-                month_start = self.options.month_start
-                month_end = self.options.month_end
-                cumulative = self.options.cumulative
-                dir = self.image_dir
-                dry = self.options.dry_run
-                merge = self.options.merge
-                gen_dates(s, dir, p, month_start, month_end, cumulative, dry, merge)
+                merged_filename = gen_dates(s, dir, p, month_start, month_end, cumulative, dry, merge)
+                merged_filenames.append(merged_filename)
             elif not self.options.dry_run:
                 s.generate(self.image_dir, p, {'project': p})
+                merged_filenames.append(p + ".png")
         s.selenium.stop()
+        if merge and len(self.projects) > 1:
+            output_filename = '-'.join(self.projects) + ".png"
+            # Should not be necessary, but seem to fix an error.
+            time.sleep(SLEEP_TIME_SEC)
+            merge_files(dir, merged_filenames, output_filename, 'vertical')
 
     def parse_args(self):
         opts = OptionParser()
