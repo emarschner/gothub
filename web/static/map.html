@@ -207,7 +207,7 @@ $(function(){
           "coordinates": [ [100.0, 0.0], [101.0, 1.0] ]
           }
     }
-        ]).on("load", 
+        ]).on('load', 
                 po.stylist().attr("stroke", function(d) { return "green"; })
                             .attr("stroke-width", function(d) { return 5;})
                             .attr("stroke-opacity", function(d) { return 0.2;})
@@ -244,27 +244,6 @@ $(function(){
             //geoData.setData(data);
             //geoData.showNext();
             var arr = []
-            if (lines) {
-                for (var i = 0; i < link_data.length; i++)
-                {
-                    var l = link_data[i];
-                    //arr.push([ [l[0].long, l[0].lat], [l[1].long, l[1].lat] ]);
-                    map.add(po.geoJson().features([
-                        {
-                            "geometry": {
-                                "coordinates": [ [l[0].long, l[0].lat], [l[1].long, l[1].lat] ],
-                                "type": "LineString"
-                            }
-                        }
-                    ]).on("load",
-                            po.stylist().attr("stroke", "black")
-                                        .attr("stroke-opacity", 0.2)
-                                        .attr("r", 50)
-                                        .style("fill", "black")
-                                        .style("stroke", "black"))
-                    );
-                }
-            }
             if (circles) {
                 for (var i = 0; i < location_data.length; i++) {
                     var l = location_data[i]
@@ -344,6 +323,26 @@ $(function(){
                     }
                 }
             }
+            if (lines) {
+                for (var i = 0; i < link_data.length; i++)
+                {
+                    var l = link_data[i];
+                    //arr.push([ [l[0].long, l[0].lat], [l[1].long, l[1].lat] ]);
+                    map.add(po.geoJson().features([
+                        {
+                            "geometry": {
+                                "coordinates": [ [l[0].long, l[0].lat], [l[1].long, l[1].lat] ],
+                                "type": "LineString"
+                            }
+                        }
+                    ]).on(
+                        'load',
+                        po.stylist().attr("stroke", "black")
+                                    .attr("stroke-width", 5)
+                                    .attr("stroke-opacity", 10 / link_data.length))
+                    );
+                }
+            }
             $('#people_count').text($.formatNumber(stats_data.author_count, {format:'#,###', locale:'us'}));
             $('#commit_count').text($.formatNumber(stats_data.commit_count, {format:'#,###', locale:'us'}));
             $('#project_name').text(project);
@@ -355,7 +354,7 @@ $(function(){
                     "type": "MultiLineString"
                     }
                 },
-                ]).on("load", 
+                ]).on('load', 
                         po.stylist()
                                     .attr("stroke-opacity", function(d) { return 0.2;}))
             );*/
