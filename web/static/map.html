@@ -25,7 +25,7 @@
 
     html
 	{
-		height:800px;
+		height:550px;
 		width:1024px;
 	}
 	
@@ -155,7 +155,7 @@ $(function(){
 
     map = po.map()
         .container(document.getElementById("map").appendChild(po.svg("svg")))
-	    .center({lat: -10, lon: 10})
+	    .center({lat: 20, lon: 10})
 	    .zoom(2)
         .add(po.interact());
 
@@ -233,7 +233,7 @@ $(function(){
     if ('scale' in urlParams) scale = eval(urlParams['scale']);
     else scale = 1;
     $.ajax({
-        url: '/query' + window.location.search,
+        url: 'http://localhost:8080/query' + window.location.search,
         dataType: "jsonp",
         jsonpCallback: "jsonpcallback",
         success: function(data, status)
