@@ -7,12 +7,19 @@
 #                --monthly --month_start 1/2008 --month_end 12/2010 \
 #                --cumulative
 #
+# To use the --merge option, which combines files into one, make sure that
+# ImageMagick is installed.
+#
+# On OS X, with homebrew installed:
+#  brew install imagemagick
+#
 # Projects of interest:
 # rails, homebrew, dotfiles, git, perl, node, mono, cucumber, docrails, progit
 
 import os
 from optparse import OptionParser
 from screenshot import ScreenshotGen
+from subprocess import Popen
 
 def getMonthArr(s_date, e_date):
     s_date = s_date.split('/')
@@ -41,6 +48,7 @@ def getMonthArr(s_date, e_date):
 
 def gen_dates(s, dir, project, month_start, month_end,
               cumulative = False, dry = True, merge = False):
+    ext = ".png"
     months = getMonthArr(month_start, month_end)
     date_start = months[0][0] + "/1/" + months[0][1]
     query = {}
@@ -56,10 +64,20 @@ def gen_dates(s, dir, project, month_start, month_end,
             query['date_start'] = months[i][0] + "/1/" + months[i][1]
             query['date_end'] = months[i+1][0] + "/1/" + months[i+1][1]
         img_name += "-" + months[i][1] + '-' + months[i][0]
-        img_names.append(img_name)
+        img_names.append(img_name + ext)
         print "query: %s" % query
         if not dry:
             s.generate(dir, img_name, query)
+    if merge:
+        merged_filename = project
+        if cumulative: merged_filename += "-c"
+        merged_filename += ext
+        # convert is part of imagemagick.
+        # +append puts images side-by-side.
+        args = ["convert"] + img_names + ["+append", merged_filename]
+        print args
+        os.chdir(dir)
+        Popen(args)
 
 
 class MapMatrix:
@@ -74,6 +92,7 @@ class MapMatrix:
                 cumulative = self.options.cumulative
                 dir = self.image_dir
                 dry = self.options.dry_run
+                merge = self.options.merge
                 gen_dates(s, dir, p, month_start, month_end, cumulative, dry, merge)
             elif not self.options.dry_run:
                 s.generate(self.image_dir, p, {'project': p})
