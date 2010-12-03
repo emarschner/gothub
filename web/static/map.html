@@ -233,7 +233,7 @@ $(function(){
     if ('scale' in urlParams) scale = eval(urlParams['scale']);
     else scale = 1;
     $.ajax({
-        url: '/query' + window.location.search,
+        url: 'http://localhost:8080/query' + window.location.search,
         dataType: "jsonp",
         jsonpCallback: "jsonpcallback",
         success: function(data, status)
