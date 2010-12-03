@@ -28,6 +28,9 @@ EXT = ".png"
 # Sleep time to get past ImageMagick issue.
 SLEEP_TIME_SEC = 1
 
+# Size of border, presumably in pixels
+BORDER = 20
+
 
 def getMonthArr(s_date, e_date):
     s_date = s_date.split('/')
@@ -65,7 +68,7 @@ def merge_files(dir, img_names, merged_filename, type):
         append_type = "-append"
     else:
         raise Exception("Invalid merge_files type: %s" % type)
-    args = ["convert"] + img_names + [append_type, merged_filename]
+    args = ["convert"] + img_names + ["-border", str(BORDER), append_type, merged_filename]
     print "merging files (%s): %s" % (type, args)
     os.chdir(dir)
     Popen(args)
