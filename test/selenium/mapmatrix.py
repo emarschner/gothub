@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 #
 # Example calls:
-# ./mapmatrix.py --project git
+# ./mapmatrix.py --projects git
 # ./mapmatrix.py --projects git,ruby
-# ./mapmatrix.py --project rails --image_dir ~/src/gothub/screenshots \
+# ./mapmatrix.py --projects rails --image_dir ~/src/gothub/screenshots \
 #                --monthly --month_start 1/2008 --month_end 12/2010 \
 #                --cumulative
 #
@@ -191,8 +191,6 @@ class MapMatrix:
                         help = "show cumulative maps?")
         opts.add_option("--append_overview", action = "store_true", default = False,
                         help = "add cumulative overview for each project")
-        opts.add_option("--project", "-p", type = 'string',
-                        default = None, help = "project name")
         opts.add_option("--style", type = 'string',
                         default = DEF_STYLE,
                         help = "map style: [" + ' '.join(STYLES.keys()) + ']')
@@ -206,10 +204,8 @@ class MapMatrix:
         
         if options.projects:
              self.projects = options.projects.split(",")
-        elif options.project: 
-            self.projects = [options.project]
         else:
-            raise Exception("Project not specified")
+            raise Exception("No projects specified")
 
         if ((options.monthly or options.quarterly)
             and not (options.month_start and options.month_end)):
