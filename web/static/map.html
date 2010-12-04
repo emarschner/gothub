@@ -147,11 +147,24 @@
             <h1 id="project_name"></h1>
         </div>
     </div>
-       <script type="text/javascript">
-//style = "original";
-style = "midnight";
-//style = "blue";
+    <script type="text/javascript">
 
+   var urlParams = {};
+    (function () {
+    var e,
+        a = /\+/g,  // Regex for replacing addition symbol with a space
+        r = /([^&;=]+)=?([^&;]*)/g,
+        d = function (s) { return decodeURIComponent(s.replace(a, " ")); },
+        q = window.location.search.substring(1);
+
+    while (e = r.exec(q))
+       urlParams[d(e[1])] = d(e[2]);
+    })();
+
+    var style = urlParams['style'];
+    if (style == null)
+        style = "midnight"
+	
 var get_link_opacity = function(d, min_opacity) {
     temp = LINK_OPACITY_SCALE / d;
     if (temp < min_opacity){
@@ -472,18 +485,6 @@ var geoData = (function()
         showNext : showNext,
         stop : stop
     };
-})();
-
-var urlParams = {};
-(function () {
-    var e,
-        a = /\+/g,  // Regex for replacing addition symbol with a space
-        r = /([^&;=]+)=?([^&;]*)/g,
-        d = function (s) { return decodeURIComponent(s.replace(a, " ")); },
-        q = window.location.search.substring(1);
-
-    while (e = r.exec(q))
-       urlParams[d(e[1])] = d(e[2]);
 })();
 
 
