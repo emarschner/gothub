@@ -6,6 +6,7 @@ import pymongo
 from pymongo.objectid import ObjectId
 import json
 from datetime import datetime
+from sets import Set
 logging.basicConfig(level=logging.INFO)
 
 conn = pymongo.Connection('nfcm5.stanford.edu', 27017)
@@ -58,6 +59,8 @@ class Query:
     if params.has_key('date_start') and params.has_key('date_end'):
       date_start = params.date_start.split('/')
       date_end = params.date_end.split('/')
+      # expected web input: MM/DD/YYYY
+      # datetime input: year, month, day
       query['date'] = {"$gt" : datetime(int(date_start[2]), int(date_start[0]), int(date_start[1])), 
               "$lt" : datetime(int(date_end[2]), int(date_end[0]), int(date_end[1])) }
 
@@ -66,32 +69,64 @@ class Query:
     cursor = db.commits.find(query)
     if params.has_key('sort') and params.sort == "1":
       cursor = cursor.sort("date", 1)
-
-    results = []
+    results = {'links': [], 'locations': [], 'stats': {}}
     seen = set()
+    locations = {}
+    commit_count = 0
+    author_count = 0
+    link_count = 0
     for c in cursor:
       if (not c['sha1'] in seen) and c.has_key('lat') and c.has_key('long'):
+        commit_count += 1
+        geo = (c['lat'], c['long'])
+        author = c['author']
+        location = ''
+        if 'location' in c:
+          location = c['location']
+        else:
+          location = None
+
+        if geo not in locations:
+          locations[geo] = {'_locations': []}
+
+        if author not in locations[geo]:
+          if location: locations[geo]['_locations'].append(location)
+          locations[geo][author] = True
+          author_count += 1
+
         for p_sha1 in c['parents']:
           p = db.commits.find_one({'sha1': p_sha1})
-          if p and p.has_key('lat') and p.has_key('long'):
-            results.append([c, p])
+          if p and p.has_key('lat') and p.has_key('long') and (p['lat'] != c['lat']) and (p['long'] != c['long']) :
+            results['links'].append([c, p])
+            link_count += 1
         seen.add(c['sha1'])
+
+    for key, val in locations.iteritems():
+      hash = {'lat': key[0], 'long': key[1]}
+      hash['loc_count'] = max(len(val) - 1, 0)
+      hash['authors'] = [e for e in val.keys() if e != '_locations']
+      hash['locations'] = [loc for loc in Set(([e for e in val['_locations']]))]
+      results['locations'].append(hash)
+
+    results['stats']['commit_count'] = commit_count
+    results['stats']['author_count'] = author_count
+    results['stats']['link_count'] = link_count
 
     return "jsonpcallback("+json.dumps(results, cls=DateEncoder)+")"
 
 class Stats:
-  def GET(self):
-    # db -> collections
-    dbs = {
-      'raw' : ['commits', 'repos', 'users'],
-      'queue' : ['commits', 'repos', 'users'],
-      'processed' : ['commits']
-    }
-    return render.stats(conn,dbs)
+    def GET(self):
+      # db -> collections
+      dbs = {
+            'raw' : ['commits', 'repos', 'users'],
+            'queue' : ['commits', 'repos', 'users'],
+            'processed' : ['commits']
+      }
+      return render.stats(conn,dbs)
 
 app = web.application(urls, globals())
 
 if __name__ == '__main__':
-  app.run()
+    app.run()
 
 # vim: tabstop=4 expandtab shiftwidth=4 softtabstop=4

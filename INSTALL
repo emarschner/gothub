@@ -1,9 +1,11 @@
 Requirements:
 =============
 
+- apt-get install ruby
 - apt-get install ruby-dev
 - apt-get install rubygems
 - apt-get install curl
+- gem install json
 - gem install jsonpretty
 
 Config:

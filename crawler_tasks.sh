@@ -165,9 +165,14 @@ function branches2commits() {
     all_repo_branches "$reponame" | while read branchname
     do
       branch_commits_api_path="`branch_commits_api_path "${reponame}/${branchname}"`"
-      ! `are_commits_done "${reponame}/${branchname}"` && grab_github_data "$branch_commits_api_path"
-      store_commits_data "$branch_commits_api_path"
-      set_commits_done "${reponame}/${branchname}"
+      if ! `are_commits_done "${reponame}/${branchname}"`
+      then
+        grab_github_data "$branch_commits_api_path"
+        store_commits_data "$branch_commits_api_path"
+        [ -n "$reponame" ] && [ -n "$branchname" ] && set_commits_done "${reponame}/${branchname}"
+      else
+        echo "Already got commits for: ${reponame}/${branchname} (skipping)" >&2
+      fi
     done
   done
 }
