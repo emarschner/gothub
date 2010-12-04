@@ -148,9 +148,9 @@
         </div>
     </div>
        <script type="text/javascript">
-style = "original";
+//style = "original";
 style = "midnight";
-style = "blue";
+//style = "blue";
 
 var get_link_opacity = function(d, min_opacity) {
     temp = LINK_OPACITY_SCALE / d;
@@ -177,7 +177,8 @@ if (style == "original") {
     LINK_MIN_OPACITY = 0.0;
 }
 else if (style == "midnight") {
-    CLOUDMADE_MAP_ID = 999;  // midnight commander
+    //CLOUDMADE_MAP_ID = 999;  // original midnight commander
+    CLOUDMADE_MAP_ID = 28046; // midnight commander, minus ocean labels
     DOT_FILL_COLOR = "white";
     DOT_STROKE_COLOR = "white";
     DOT_SCALE = 18;
