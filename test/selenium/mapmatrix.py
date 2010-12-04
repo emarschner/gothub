@@ -105,9 +105,10 @@ def merge_files(dir, img_names, merged_filename, type, style):
 
 def gen_dates(s, dir, project, month_start, month_end,
               cumulative = False, dry = True, merge = False, style = None,
-              type = None):
+              type = None, append_overview = None):
     date_ranges = getDateArr(type, month_start, month_end)
     date_start = date_ranges[0][0] + "/1/" + date_ranges[0][1]
+    date_end = date_ranges[-1][0] + "/1/" + date_ranges[-1][1]
     query = {}
     query['project'] = project
     query['style'] = style
@@ -126,6 +127,10 @@ def gen_dates(s, dir, project, month_start, month_end,
         print "query: %s" % query
         if not dry:
             s.generate(dir, img_name, query)
+    if append_overview:
+        filename = project + '-overview'
+        s.generate(dir, filename, {'project': project, 'style': style, 'date_start': date_start, 'date_end': date_end})
+        img_names.append(filename + EXT)
     if merge:
         merged_filename = project
         if cumulative: merged_filename += "-c"
@@ -150,20 +155,21 @@ class MapMatrix:
         style = self.options.style
         merged_filenames = []
         type = None
+        append_overview = self.options.append_overview
         if self.options.monthly:
             type = 'monthly'
         elif self.options.quarterly:
             type = 'quarterly'
         for p in self.projects:
             if type:
-                merged_filename = gen_dates(s, dir, p, month_start, month_end, cumulative, dry, merge, style, type)
+                merged_filename = gen_dates(s, dir, p, month_start, month_end, cumulative, dry, merge, style, type, append_overview)
                 merged_filenames.append(merged_filename)
             elif not self.options.dry_run:
                 s.generate(self.image_dir, p, {'project': p, 'style': style})
-                merged_filenames.append(p + ".png")
+                merged_filenames.append(p + EXT)
         s.selenium.stop()
         if merge and len(self.projects) > 1:
-            output_filename = '-'.join(self.projects) + ".png"
+            output_filename = '-'.join(self.projects) + EXT
             # Should not be necessary, but seem to fix an error.
             time.sleep(SLEEP_TIME_SEC)
             merge_files(dir, merged_filenames, output_filename, 'vertical', style)
@@ -183,6 +189,8 @@ class MapMatrix:
                         help = "merge maps for --monthly?")
         opts.add_option("--cumulative", action = "store_true", default = False,
                         help = "show cumulative maps?")
+        opts.add_option("--append_overview", action = "store_true", default = False,
+                        help = "add cumulative overview for each project")
         opts.add_option("--project", "-p", type = 'string',
                         default = None, help = "project name")
         opts.add_option("--style", type = 'string',
