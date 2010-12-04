@@ -15,6 +15,10 @@
 #
 # Projects of interest:
 # rails, homebrew, dotfiles, git, perl, node, mono, cucumber, docrails, progit
+# Eli's suggestions:
+# what's with system-automation projects & the pacific northwest?
+# puppet, cookbooks, chef, capistrano, diaspora, facebooker
+
 
 import os
 from optparse import OptionParser
@@ -26,15 +30,16 @@ import time
 EXT = ".png"
 
 # Sleep time to get past ImageMagick issue.
-SLEEP_TIME_SEC = 1
+SLEEP_TIME_SEC = 2.0
 
-# Size of border, presumably in pixels
-BORDER = 60
+# Size of border in pixels.
+BORDER_HORIZONTAL = 60
+BORDER_VERTICAL = 10
 
 # See web/static/map.html; colors match ocean color values.
 DEF_STYLE = 'midnight'
 STYLES = {
-    'original': {'bgcolor': "#9fbdc8"},
+    'original': {'bgcolor': "#abbcc9"},
     'midnight': {'bgcolor': "#021019"},
     'blue': {'bgcolor:': "#ffffff"}
 }
@@ -69,15 +74,18 @@ def getMonthArr(s_date, e_date):
 # +append puts images side-by-side.
 def merge_files(dir, img_names, merged_filename, type, style):
     append_type = None
+    border_val = None
     if type == 'horizontal':
         append_type = "+append"
+        border_val = BORDER_HORIZONTAL
     elif type == 'vertical':
         append_type = "-append"
+        border_val = BORDER_VERTICAL
     else:
         raise Exception("Invalid merge_files type: %s" % type)
     args = ["convert"] + img_names
     args += ["-bordercolor", STYLES[style]['bgcolor']]
-    args += ["-border", str(BORDER)]
+    args += ["-border", str(border_val)]
     args += [append_type, merged_filename]
     print "merging files (%s): %s" % (type, args)
     os.chdir(dir)
@@ -85,8 +93,7 @@ def merge_files(dir, img_names, merged_filename, type, style):
 
 
 def gen_dates(s, dir, project, month_start, month_end,
-              cumulative = False, dry = True, merge = False, style = None,
-              bgcolor = None):
+              cumulative = False, dry = True, merge = False, style = None):
     months = getMonthArr(month_start, month_end)
     date_start = months[0][0] + "/1/" + months[0][1]
     query = {}
@@ -132,7 +139,7 @@ class MapMatrix:
         merged_filenames = []
         for p in self.projects:
             if self.options.monthly:
-                merged_filename = gen_dates(s, dir, p, month_start, month_end, cumulative, dry, merge, style, bgcolor)
+                merged_filename = gen_dates(s, dir, p, month_start, month_end, cumulative, dry, merge, style)
                 merged_filenames.append(merged_filename)
             elif not self.options.dry_run:
                 s.generate(self.image_dir, p, {'project': p, 'style': style})
