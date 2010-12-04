@@ -307,6 +307,7 @@ $(function(){
             //geoData.setData(data);
             //geoData.showNext();
             var arr = []
+            location_data.sort(sortCount);
             if (circles) {
                 for (var i = 0; i < location_data.length; i++) {
                     var l = location_data[i]
@@ -424,6 +425,11 @@ $(function(){
         }
     });
 });
+
+var sortCount = function(a, b)
+{
+    return b.loc_count - a.loc_count;
+}
 
 var geoData = (function()
 {
