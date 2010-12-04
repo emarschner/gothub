@@ -161,6 +161,7 @@ var get_link_opacity = function(d, min_opacity) {
         return temp;
     }
 }
+DOT_STROKE_OPACITY = 0.5;
 
 if (style == "original") {
     CLOUDMADE_MAP_ID = 998;
@@ -337,10 +338,11 @@ $(function(){
                                     point.style('opacity', f.data.size / 2);
                                 });
                                 */
-                                p.style('fill', DOT_FILL_COLOR)
-                                p.style('stroke', DOT_STROKE_COLOR)
-                                p.style('opacity', f.data.size / 2)
-                                p.attr('r', Math.sqrt(f.data.size * DOT_SCALE * scale))
+                                p.style('fill', DOT_FILL_COLOR);
+                                p.style('stroke', DOT_STROKE_COLOR);
+                                p.style('stroke-opacity', DOT_STROKE_OPACITY);
+                                p.style('opacity', f.data.size / 2);
+                                p.attr('r', Math.sqrt(f.data.size * DOT_SCALE * scale));
                             });
                         }
                     ));
