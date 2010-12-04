@@ -29,8 +29,15 @@ EXT = ".png"
 SLEEP_TIME_SEC = 1
 
 # Size of border, presumably in pixels
-BORDER = 20
+BORDER = 60
 
+# See web/static/map.html; colors match ocean color values.
+DEF_STYLE = 'midnight'
+STYLES = {
+    'original': {'bgcolor': "#9fbdc8"},
+    'midnight': {'bgcolor': "#021019"},
+    'blue': {'bgcolor:': "#ffffff"}
+}
 
 def getMonthArr(s_date, e_date):
     s_date = s_date.split('/')
@@ -60,7 +67,7 @@ def getMonthArr(s_date, e_date):
 
 # convert is part of imagemagick.
 # +append puts images side-by-side.
-def merge_files(dir, img_names, merged_filename, type):
+def merge_files(dir, img_names, merged_filename, type, style):
     append_type = None
     if type == 'horizontal':
         append_type = "+append"
@@ -68,18 +75,23 @@ def merge_files(dir, img_names, merged_filename, type):
         append_type = "-append"
     else:
         raise Exception("Invalid merge_files type: %s" % type)
-    args = ["convert"] + img_names + ["-border", str(BORDER), append_type, merged_filename]
+    args = ["convert"] + img_names
+    args += ["-bordercolor", STYLES[style]['bgcolor']]
+    args += ["-border", str(BORDER)]
+    args += [append_type, merged_filename]
     print "merging files (%s): %s" % (type, args)
     os.chdir(dir)
     Popen(args)
 
 
 def gen_dates(s, dir, project, month_start, month_end,
-              cumulative = False, dry = True, merge = False):
+              cumulative = False, dry = True, merge = False, style = None,
+              bgcolor = None):
     months = getMonthArr(month_start, month_end)
     date_start = months[0][0] + "/1/" + months[0][1]
     query = {}
     query['project'] = project
+    query['style'] = style
     img_names = []
     for i in range(0, len(months)-1):
         img_name = project
@@ -99,7 +111,7 @@ def gen_dates(s, dir, project, month_start, month_end,
         merged_filename = project
         if cumulative: merged_filename += "-c"
         merged_filename += EXT
-        merge_files(dir, img_names, merged_filename, 'horizontal')
+        merge_files(dir, img_names, merged_filename, 'horizontal', style)
         return merged_filename
     else:
         return None
@@ -116,20 +128,21 @@ class MapMatrix:
         dir = self.image_dir
         dry = self.options.dry_run
         merge = self.options.merge
+        style = self.options.style
         merged_filenames = []
         for p in self.projects:
             if self.options.monthly:
-                merged_filename = gen_dates(s, dir, p, month_start, month_end, cumulative, dry, merge)
+                merged_filename = gen_dates(s, dir, p, month_start, month_end, cumulative, dry, merge, style, bgcolor)
                 merged_filenames.append(merged_filename)
             elif not self.options.dry_run:
-                s.generate(self.image_dir, p, {'project': p})
+                s.generate(self.image_dir, p, {'project': p, 'style': style})
                 merged_filenames.append(p + ".png")
         s.selenium.stop()
         if merge and len(self.projects) > 1:
             output_filename = '-'.join(self.projects) + ".png"
             # Should not be necessary, but seem to fix an error.
             time.sleep(SLEEP_TIME_SEC)
-            merge_files(dir, merged_filenames, output_filename, 'vertical')
+            merge_files(dir, merged_filenames, output_filename, 'vertical', style)
 
     def parse_args(self):
         opts = OptionParser()
@@ -146,6 +159,9 @@ class MapMatrix:
                         help = "show cumulative maps?")
         opts.add_option("--project", "-p", type = 'string',
                         default = None, help = "project name")
+        opts.add_option("--style", type = 'string',
+                        default = DEF_STYLE,
+                        help = "map style: [" + ' '.join(STYLES.keys()) + ']')
         opts.add_option("--projects", type = 'string',
                         default = None, help = "project names, comma-separated")
         opts.add_option("--month_start", type = 'string',
