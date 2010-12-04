@@ -148,6 +148,67 @@
         </div>
     </div>
        <script type="text/javascript">
+style = "original";
+style = "midnight";
+style = "blue";
+
+var get_link_opacity = function(d, min_opacity) {
+    temp = LINK_OPACITY_SCALE / d;
+    if (temp < min_opacity){
+        return min_opacity;
+    }
+    else {
+        return temp;
+    }
+}
+
+if (style == "original") {
+    CLOUDMADE_MAP_ID = 998;
+    DOT_FILL_COLOR = "green";
+    DOT_STROKE_COLOR = "black";
+    DOT_SCALE = 50;
+    NAME_FILL_COLOR = "black";
+    NAME_STROKE_COLOR = "green";
+    NAME_OPACITY = 0.5;
+    NAME_FONT_SIZE = 12;
+    LINK_COLOR = "black";
+    LINK_WIDTH = 5;
+    LINK_OPACITY_SCALE = 10;
+    LINK_MIN_OPACITY = 0.0;
+}
+else if (style == "midnight") {
+    CLOUDMADE_MAP_ID = 999;  // midnight commander
+    DOT_FILL_COLOR = "white";
+    DOT_STROKE_COLOR = "white";
+    DOT_SCALE = 18;
+    NAME_FILL_COLOR = "black";
+    NAME_STROKE_COLOR = "green";
+    NAME_OPACITY = 0.5;
+    NAME_FONT_SIZE = 12;
+    LINK_COLOR = "white";
+    LINK_WIDTH = 5;
+    LINK_OPACITY_SCALE = 25;
+    // try not to let this get too light:
+    LINK_MIN_OPACITY = 0.02
+}
+else if (style == "blue") {
+    // BH: would probably look quite nice if borders could be removed!!!
+    // nice, bright blue from colorbrewer
+    brightblue = "2C7FB8";
+    CLOUDMADE_MAP_ID = 28028;
+    DOT_FILL_COLOR = brightblue;
+    DOT_STROKE_COLOR = "white";
+    DOT_SCALE = 25;
+    NAME_FILL_COLOR = "black";
+    NAME_STROKE_COLOR = "green";
+    NAME_OPACITY = 0.5;
+    NAME_FONT_SIZE = 12;
+    LINK_COLOR = brightblue;
+    LINK_WIDTH = 5;
+    LINK_OPACITY_SCALE = 25;
+    LINK_MIN_OPACITY = 0.00;
+}
+
 map = null;
 po = org.polymaps;
 
@@ -162,7 +223,9 @@ $(function(){
     map.add(po.image()
         .url(po.url("http://{S}tile.cloudmade.com"
         + "/1a1b06b230af4efdbb989ea99e9841af" // http://cloudmade.com/register
-        + "/998/256/{Z}/{X}/{Y}.png")
+        + "/"
+        + CLOUDMADE_MAP_ID
+        + "/256/{Z}/{X}/{Y}.png")
         .hosts(["a.", "b.", "c.", ""]))
     );
 
@@ -272,10 +335,10 @@ $(function(){
                                     point.style('opacity', f.data.size / 2);
                                 });
                                 */
-                                p.style('fill', 'green')
-                                p.style('stroke', 'black')
+                                p.style('fill', DOT_FILL_COLOR)
+                                p.style('stroke', DOT_STROKE_COLOR)
                                 p.style('opacity', f.data.size / 2)
-                                p.attr('r', Math.sqrt(f.data.size * 50 * scale))
+                                p.attr('r', Math.sqrt(f.data.size * DOT_SCALE * scale))
                             });
                         }
                     ));
@@ -302,10 +365,10 @@ $(function(){
                                         var r = Math.sqrt(f.data.size * 50);
                                         g.add('svg:text')
                                             .attr('transform', 'translate(' + (r + 3) + ',' + (-r) + ')')
-                                            .style('fill', 'black')
-                                            .style('stroke', 'green')
-                                            .style('opacity', 0.5)
-                                            .style('font-size', 12)
+                                            .style('fill', NAME_FILL_COLOR)
+                                            .style('stroke', NAME_STROKE_COLOR)
+                                            .style('opacity', NAME_OPACITY)
+                                            .style('font-size', NAME_FONT_SIZE)
                                             .text(f.data.location);
                                         /*
                                         g.add('svg:rect')
@@ -337,9 +400,9 @@ $(function(){
                         }
                     ]).on(
                         'load',
-                        po.stylist().attr("stroke", "black")
-                                    .attr("stroke-width", 5)
-                                    .attr("stroke-opacity", 10 / link_data.length))
+                        po.stylist().attr("stroke", LINK_COLOR)
+                                    .attr("stroke-width", LINK_WIDTH)
+                                    .attr("stroke-opacity", get_link_opacity(link_data.length, LINK_MIN_OPACITY)))
                     );
                 }
             }
