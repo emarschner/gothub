@@ -105,10 +105,10 @@ def merge_files(dir, img_names, merged_filename, type, style):
     os.chdir(dir)
     Popen(args)
 
-
 def gen_dates(s, dir, project, month_start, month_end,
               cumulative = False, dry = True, merge = False,
               type = None, append_overview = None, query_base = None):
+    # note: query should include a style field
     date_ranges = getDateArr(type, month_start, month_end)
     date_start = date_ranges[0][0] + "/1/" + date_ranges[0][1]
     date_end = date_ranges[-1][0] + "/1/" + date_ranges[-1][1]
@@ -130,13 +130,15 @@ def gen_dates(s, dir, project, month_start, month_end,
             s.generate(dir, img_name, query)
     if append_overview:
         filename = project + '-overview'
-        s.generate(dir, filename, query.copy().update({'date_start': date_start, 'date_end': date_end}))
+        query_in = query.copy()
+        query_in.update({'date_start': date_start, 'date_end': date_end})
+        s.generate(dir, filename, query_in)
         img_names.append(filename + EXT)
     if merge:
         merged_filename = project
         if cumulative: merged_filename += "-c"
         merged_filename += EXT
-        merge_files(dir, img_names, merged_filename, 'horizontal', style)
+        merge_files(dir, img_names, merged_filename, 'horizontal', query_base['style'])
         return merged_filename
     else:
         return None
