@@ -207,7 +207,7 @@ else if (style == "midnight") {
     CLOUDMADE_MAP_ID = 28046; // midnight commander, minus ocean labels
     DOT_FILL_COLOR = "white";
     DOT_STROKE_COLOR = "white";
-    DOT_SCALE = 25;
+    DOT_SCALE = 25; // use 1 (!) for one month w/all projects
     NAME_FILL_COLOR = "black";
     NAME_STROKE_COLOR = "green";
     NAME_OPACITY = 0.5;
@@ -309,7 +309,7 @@ $(function(){
     
     var project;
     if ("project" in urlParams) project = urlParams["project"];
-    else project = "rails";
+    else project = "all";
     var lines;
     if ('lines' in urlParams) lines = eval(urlParams['lines']);
     else lines = true;
