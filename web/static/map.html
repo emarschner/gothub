@@ -326,7 +326,7 @@ $(function(){
     if ('linkMaxScale' in urlParams) linkMaxScale = parseInt(urlParams['linkMaxScale']);
 	else linkMaxScale = 0;
     $.ajax({
-        url: 'http://nfcm5:8080/query' + window.location.search,
+        url: 'http://localhost:8080/query' + window.location.search,
         dataType: "jsonp",
         jsonpCallback: "jsonpcallback",
         success: function(data, status)
