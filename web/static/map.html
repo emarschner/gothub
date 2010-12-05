@@ -323,6 +323,7 @@ $(function(){
     if ('scale' in urlParams) scale = eval(urlParams['scale']);
     else scale = 1;
     if ('linkAggregation' in urlParams) linkAggregation = urlParams['linkAggregation'] == 'True';
+    else linkAggregation = false;
     if ('linkMaxScale' in urlParams) linkMaxScale = parseInt(urlParams['linkMaxScale']);
 	else linkMaxScale = 0;
     $.ajax({

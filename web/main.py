@@ -10,7 +10,7 @@ from sets import Set
 from collections import defaultdict
 logging.basicConfig(level=logging.INFO)
 
-conn = pymongo.Connection('nfcm5.stanford.edu', 27017)
+conn = pymongo.Connection()
 db = conn.processed
 
 urls = (
