@@ -48,21 +48,20 @@ STYLES = {
     'blue': {'bgcolor': "#ffffff"}
 }
 
-def quarter_align(month):
-    # month is a number in [1..12].  returns month aligned w/quarter,
-    # rounded down
-    return int(floor(((month - 1) / 3)) * 3) + 1
+def month_align(month, month_inc):
+    # month is a number in [1..12], round to nearest month_inc
+    return int(floor(((month - 1) / month_inc)) * month_inc) + 1
 
-def getDateArr(type, s_date, e_date):
+def getDateArr(month_inc, s_date, e_date):
     s_date = s_date.split('/')
     s_month = int(s_date[0])
-    if type == 'quarterly': s_month = quarter_align(s_month)
+    s_month = month_align(s_month, month_inc)
     s_year = int(s_date[1])
     cur_month = s_month
     cur_year = s_year
     e_date = e_date.split('/')
     e_month = int(e_date[0])
-    if type == 'quarterly': e_month = quarter_align(e_month)
+    e_month = month_align(e_month, month_inc)
     e_year = int(e_date[1])
     retVal = []
     while True:
@@ -70,10 +69,7 @@ def getDateArr(type, s_date, e_date):
         if cur_month >= e_month and cur_year >= e_year:
             end = True
         retVal.append((str(cur_month), str(cur_year)))
-        if type == 'monthly':
-            cur_month = cur_month + 1
-        elif type == 'quarterly':
-            cur_month = cur_month + 3
+        cur_month += month_inc
         if cur_month > 12:
             cur_month = 1
             cur_year = cur_year + 1
@@ -81,7 +77,6 @@ def getDateArr(type, s_date, e_date):
             break
 
     return retVal
-
 
 
 # convert is part of imagemagick.
@@ -107,9 +102,9 @@ def merge_files(dir, img_names, merged_filename, type, style):
 
 def gen_dates(s, dir, project, month_start, month_end,
               cumulative = False, dry = True, merge = False,
-              type = None, append_overview = None, query_base = None):
+              month_inc = None, append_overview = None, query_base = None):
     # note: query should include a style field
-    date_ranges = getDateArr(type, month_start, month_end)
+    date_ranges = getDateArr(month_inc, month_start, month_end)
     date_start = date_ranges[0][0] + "/1/" + date_ranges[0][1]
     date_end = date_ranges[-1][0] + "/1/" + date_ranges[-1][1]
     query = query_base.copy()
@@ -157,16 +152,12 @@ class MapMatrix:
         merge = self.options.merge
         style = self.options.style
         merged_filenames = []
-        type = None
         append_overview = self.options.append_overview
-        if self.options.monthly:
-            type = 'monthly'
-        elif self.options.quarterly:
-            type = 'quarterly'
+        month_inc = self.options.month_inc
         for p in self.projects:
             query_base = {'project': p, 'style': style}
             if type:
-                merged_filename = gen_dates(s, dir, p, month_start, month_end, cumulative, dry, merge, type, append_overview, query_base)
+                merged_filename = gen_dates(s, dir, p, month_start, month_end, cumulative, dry, merge, month_inc, append_overview, query_base)
                 merged_filenames.append(merged_filename)
             elif not self.options.dry_run:
                 s.generate(self.image_dir, p, query_base)
@@ -185,12 +176,10 @@ class MapMatrix:
                         help = "directory for images")
         opts.add_option("--dry_run", action = "store_true", default = False,
                         help = "dry run, w/no map generation?")
-        opts.add_option("--monthly", action = "store_true", default = False,
-                        help = "generate one map per month?")
-        opts.add_option("--quarterly", action = "store_true", default = False,
-                        help = "generate one map per quarter?")
+        opts.add_option("--month_inc", default = None, type = 'int',
+                        help = "monthly increment?  must divide into 12.")
         opts.add_option("--merge", action = "store_true", default = False,
-                        help = "merge maps for --monthly?")
+                        help = "merge maps for --month_inc?")
         opts.add_option("--cumulative", action = "store_true", default = False,
                         help = "show cumulative maps?")
         opts.add_option("--append_overview", action = "store_true", default = False,
@@ -211,9 +200,12 @@ class MapMatrix:
         else:
             raise Exception("No projects specified")
 
-        if ((options.monthly or options.quarterly)
-            and not (options.month_start and options.month_end)):
-            raise Exception("Monthly/quarterly specified without dates")
+        if (options.month_inc and
+            not (options.month_start and options.month_end)):
+            raise Exception("Month increment specified without dates")
+        if (options.month_inc and
+            options.month_inc not in [1, 2, 3, 4, 6]):
+            raise Exception("Month increment doesn't divide into 12 - not sure what to do")
 
         if not options.image_dir:
             self.image_dir = os.path.join(os.path.expanduser('~'), "screenshots")
