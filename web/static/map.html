@@ -322,8 +322,11 @@ $(function(){
     var scale;
     if ('scale' in urlParams) scale = eval(urlParams['scale']);
     else scale = 1;
+    if ('linkAggregation' in urlParams) linkAggregation = urlParams['linkAggregation'] == 'True';
+    if ('linkMaxScale' in urlParams) linkMaxScale = parseInt(urlParams['linkMaxScale']);
+	else linkMaxScale = 0;
     $.ajax({
-        url: 'http://localhost:8080/query' + window.location.search,
+        url: 'http://nfcm5:8080/query' + window.location.search,
         dataType: "jsonp",
         jsonpCallback: "jsonpcallback",
         success: function(data, status)
@@ -334,7 +337,7 @@ $(function(){
             //geoData.setData(data);
             //geoData.showNext();
             var arr = []
-            location_data.sort(sortCount);
+            location_data.sort(sortCircles);
             if (circles) {
                 for (var i = 0; i < location_data.length; i++) {
                     var l = location_data[i]
@@ -416,23 +419,38 @@ $(function(){
                 }
             }
             if (lines) {
+                link_data.sort(sortLinks);
+                var scaleFunc;
+                if (linkMaxScale)
+                    scaleFunc = linearScale(linkMaxScale, 0.02, 0.3);
                 for (var i = 0; i < link_data.length; i++)
                 {
                     var l = link_data[i];
+                    var strength = l[1];
+                    var c = l[0];
+                    var coords;
+                    if (linkAggregation)
+                        coords = [ [c[0][0], c[0][1]], [c[1][0], c[1][1]] ];
+                    else
+                        coords = [ [l[0][0], l[0][1]], [l[1][0], l[1][1]] ];
                     //arr.push([ [l[0].long, l[0].lat], [l[1].long, l[1].lat] ]);
                     map.add(po.geoJson().features([
                         {
                             "geometry": {
-                                "coordinates": [ [l[0].long, l[0].lat], [l[1].long, l[1].lat] ],
+                                "coordinates": coords,
                                 "type": "LineString"
                             }
                         }
                     ]).on(
-                        'load',
-                        po.stylist().attr("stroke", LINK_COLOR)
+                        'load', (function(){
+	                    var oVal = 0.02//get_link_opacity(link_data.length, LINK_MIN_OPACITY);
+                        if (linkAggregation && scaleFunc != null)
+                            oVal = scaleFunc(strength);
+                        return po.stylist().attr("stroke", LINK_COLOR)
                                     .attr("stroke-width", LINK_WIDTH)
-                                    .attr("stroke-opacity", get_link_opacity(link_data.length, LINK_MIN_OPACITY)))
-                    );
+                                    .attr("stroke-opacity", oVal);
+                        })()
+                    ));
                 }
             }
             if (stats_data.author_count > 0) $('#people_count').text($.formatNumber(stats_data.author_count, {format:'#,###', locale:'us'}));
@@ -455,10 +473,23 @@ $(function(){
     });
 });
 
-var sortCount = function(a, b)
+var sortCircles = function(a, b)
 {
     return b.loc_count - a.loc_count;
-}
+};
+
+var sortLinks = function(a, b)
+{
+	return b[1] - a[1];
+};
+
+var linearScale = function(maxIndex, minValue, maxValue)
+{
+	return function(index)
+	{
+		return minValue + (maxValue - minValue) * (index/maxIndex)
+	}
+};
 
 var geoData = (function()
 {

@@ -7,6 +7,7 @@ from pymongo.objectid import ObjectId
 import json
 from datetime import datetime
 from sets import Set
+from collections import defaultdict
 logging.basicConfig(level=logging.INFO)
 
 conn = pymongo.Connection('nfcm5.stanford.edu', 27017)
@@ -47,7 +48,8 @@ class Query:
   def GET(self):
     params = web.input()
     query = {}
-
+    linkAggregation = False
+    linkMaxScale = False
     #logging.info(params.keys())
 
     if params.has_key('project'):
@@ -63,7 +65,11 @@ class Query:
       # datetime input: year, month, day
       query['date'] = {"$gt" : datetime(int(date_start[2]), int(date_start[0]), int(date_start[1])), 
               "$lt" : datetime(int(date_end[2]), int(date_end[0]), int(date_end[1])) }
-
+    if params.has_key('linkAggregation'):
+      if params['linkAggregation'] == "True":
+        linkAggregation = True
+    if params.has_key('linkMaxScale'):
+      linkMaxScale = params['linkMaxScale']
     #logging.info(query)
 
     cursor = db.commits.find(query)
@@ -75,6 +81,7 @@ class Query:
     commit_count = 0
     author_count = 0
     link_count = 0
+    links = defaultdict(int)
     for c in cursor:
       if (not c['sha1'] in seen) and c.has_key('lat') and c.has_key('long'):
         commit_count += 1
@@ -97,8 +104,13 @@ class Query:
         for p_sha1 in c['parents']:
           p = db.commits.find_one({'sha1': p_sha1})
           if p and p.has_key('lat') and p.has_key('long') and (p['lat'] != c['lat']) and (p['long'] != c['long']) :
-            results['links'].append([c, p])
-            link_count += 1
+            if linkAggregation:
+            #results['links'].append([c, p])
+              key = ((c['long'], c['lat']),(p['long'], p['lat']))
+              links[key] = links[key] + 1
+            else:
+              results['links'].append(((c['long'], c['lat']),(p['long'], p['lat'])))
+              link_count += 1
         seen.add(c['sha1'])
 
     for key, val in locations.iteritems():
@@ -112,6 +124,8 @@ class Query:
     results['stats']['author_count'] = author_count
     results['stats']['link_count'] = link_count
 
+    if linkAggregation:
+      results['links'] = links.items()
     return "jsonpcallback("+json.dumps(results, cls=DateEncoder)+")"
 
 class Stats:
