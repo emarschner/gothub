@@ -18,6 +18,9 @@
 # Eli's suggestions:
 # what's with system-automation projects & the pacific northwest?
 # puppet, cookbooks, chef, capistrano, diaspora, facebooker
+#
+# Projects rendered together:
+# rails, docrails, rails-i18n, sinatra, perl, parrot, mono, git, progit, node, eventmachine
 
 
 import os
@@ -42,7 +45,7 @@ DEF_STYLE = 'midnight'
 STYLES = {
     'original': {'bgcolor': "#abbcc9"},
     'midnight': {'bgcolor': "#021019"},
-    'blue': {'bgcolor:': "#ffffff"}
+    'blue': {'bgcolor': "#ffffff"}
 }
 
 def quarter_align(month):
