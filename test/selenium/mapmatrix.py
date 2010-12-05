@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 #
 # Example calls:
-# ./mapmatrix.py --project git
+# ./mapmatrix.py --projects git
 # ./mapmatrix.py --projects git,ruby
-# ./mapmatrix.py --project rails --image_dir ~/src/gothub/screenshots \
+# ./mapmatrix.py --projects rails --image_dir ~/src/gothub/screenshots \
 #                --monthly --month_start 1/2008 --month_end 12/2010 \
 #                --cumulative
 #
@@ -107,14 +107,12 @@ def merge_files(dir, img_names, merged_filename, type, style):
 
 
 def gen_dates(s, dir, project, month_start, month_end,
-              cumulative = False, dry = True, merge = False, style = None,
-              type = None, append_overview = None):
+              cumulative = False, dry = True, merge = False,
+              type = None, append_overview = None, query_base = None):
     date_ranges = getDateArr(type, month_start, month_end)
     date_start = date_ranges[0][0] + "/1/" + date_ranges[0][1]
     date_end = date_ranges[-1][0] + "/1/" + date_ranges[-1][1]
-    query = {}
-    query['project'] = project
-    query['style'] = style
+    query = query_base.copy()
     img_names = []
     for i in range(0, len(date_ranges)-1):
         img_name = project
@@ -132,7 +130,7 @@ def gen_dates(s, dir, project, month_start, month_end,
             s.generate(dir, img_name, query)
     if append_overview:
         filename = project + '-overview'
-        s.generate(dir, filename, {'project': project, 'style': style, 'date_start': date_start, 'date_end': date_end})
+        s.generate(dir, filename, query.copy().update({'date_start': date_start, 'date_end': date_end}))
         img_names.append(filename + EXT)
     if merge:
         merged_filename = project
@@ -164,11 +162,12 @@ class MapMatrix:
         elif self.options.quarterly:
             type = 'quarterly'
         for p in self.projects:
+            query_base = {'project': p, 'style': style}
             if type:
-                merged_filename = gen_dates(s, dir, p, month_start, month_end, cumulative, dry, merge, style, type, append_overview)
+                merged_filename = gen_dates(s, dir, p, month_start, month_end, cumulative, dry, merge, type, append_overview, query_base)
                 merged_filenames.append(merged_filename)
             elif not self.options.dry_run:
-                s.generate(self.image_dir, p, {'project': p, 'style': style})
+                s.generate(self.image_dir, p, query_base)
                 merged_filenames.append(p + EXT)
         s.selenium.stop()
         if merge and len(self.projects) > 1:
@@ -194,8 +193,6 @@ class MapMatrix:
                         help = "show cumulative maps?")
         opts.add_option("--append_overview", action = "store_true", default = False,
                         help = "add cumulative overview for each project")
-        opts.add_option("--project", "-p", type = 'string',
-                        default = None, help = "project name")
         opts.add_option("--style", type = 'string',
                         default = DEF_STYLE,
                         help = "map style: [" + ' '.join(STYLES.keys()) + ']')
@@ -209,10 +206,8 @@ class MapMatrix:
         
         if options.projects:
              self.projects = options.projects.split(",")
-        elif options.project: 
-            self.projects = [options.project]
         else:
-            raise Exception("Project not specified")
+            raise Exception("No projects specified")
 
         if ((options.monthly or options.quarterly)
             and not (options.month_start and options.month_end)):
