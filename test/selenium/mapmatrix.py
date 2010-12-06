@@ -20,7 +20,7 @@
 # puppet, cookbooks, chef, capistrano, diaspora, facebooker
 #
 # Projects rendered together:
-# rails, docrails, rails-i18n, sinatra, perl, parrot, mono, git, progit, node, eventmachine
+# rails,docrails,rails-i18n,sinatra,perl,parrot,mono,git,progit,node,eventmachine,homebrew
 
 
 import os
@@ -37,8 +37,8 @@ EXT = ".png"
 SLEEP_TIME_SEC = 2.0
 
 # Size of border in pixels.
-BORDER_HORIZONTAL = 60
-BORDER_VERTICAL = 10
+BORDER_HORIZONTAL = 40
+BORDER_VERTICAL = 5
 
 # See web/static/map.html; colors match ocean color values.
 DEF_STYLE = 'midnight'

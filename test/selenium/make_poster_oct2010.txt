@@ -1,0 +1,8 @@
+MapMatrix doesn't support doing this for all projects, just yet.
+
+Change map.html to use much smaller scaling to handle the large number of users:
+DOT_SCALE = 1; // use 1 (!) for one month w/all projects
+
+Ended up doing a screen capture of this url string:
+http://localhost:8080/static/map.html?style=midnight&date_start=10/1/2010&date_end=11/1/2010
+
