@@ -3,6 +3,7 @@ import logging
 #import model
 #import markdown
 import pymongo
+import re
 from pymongo.objectid import ObjectId
 import json
 from datetime import datetime
@@ -18,6 +19,7 @@ urls = (
   '/stats', 'Stats',
   '/test', 'Test',
   '/query', 'Query',
+  '/projects', 'Projects'
 )
 
 render = web.template.render('templates/')
@@ -43,6 +45,22 @@ class Test:
       return "<h1>" + params.name + "</h1>"
     else:
       return "<h1> no name </h1>"
+
+class Projects:
+  def GET(self):
+    pattern = re.compile('^' + web.input().q + '.*')
+    cursor = db.command({
+      'distinct': 'commits',
+      'key': 'project',
+      'query': {
+        'project': pattern
+      }
+    })['values']
+    response = {'results': []}
+    results = response['results']
+    for v in cursor:
+      results.append({'id': v, 'name': v})
+    return json.dumps(response)
 
 class Query:
   def GET(self):
@@ -143,4 +161,4 @@ app = web.application(urls, globals())
 if __name__ == '__main__':
     app.run()
 
-# vim: tabstop=4 expandtab shiftwidth=4 softtabstop=4
+# vim: tabstop=2 expandtab shiftwidth=2 softtabstop=2
