@@ -376,8 +376,8 @@
                     circles.push({long: parseFloat(strip[0]), lat: parseFloat(strip[1]), loc_count: data.locations[idx]});
                 }
                 data.locations = circles;
-                data.stats.link_count = data.links.count;
-                data.stats.locations = data.circles.count;
+                data.stats.link_count = data.links.length;
+                data.stats.location_count = data.locations.length;
                 annotateMap(data);
             };
             
@@ -634,9 +634,27 @@
                      map.add(el);
                  }
              }
-             if (stats_data.author_count > 0) $('#people_count').text($.formatNumber(stats_data.author_count, {format:'#,###', locale:'us'}));
-             if (stats_data.commit_count > 0) $('#commit_count').text($.formatNumber(stats_data.commit_count, {format:'#,###', locale:'us'}));
-             if (stats_data.link_count > 0) $('#link_count').text($.formatNumber(stats_data.link_count, {format:'#,###', locale:'us'}));
+             if (stats_data.author_count > 0) 
+             {
+                 $('#people_count').text($.formatNumber(stats_data.author_count, {format:'#,###', locale:'us'}));
+             }
+             else { $('#people_count').parent().hide();}
+             if (stats_data.commit_count > 0) 
+             {
+                $('#commit_count').text($.formatNumber(stats_data.commit_count, {format:'#,###', locale:'us'}));
+             }
+             else {$('#commit_count').parent().hide();}
+             if (stats_data.link_count > 0) 
+             {
+                 $('#link_count').text($.formatNumber(stats_data.link_count, {format:'#,###', locale:'us'}));
+             }
+             else {$('#link_count').parent.hide();}
+             if (stats_data.location_count > 0) 
+             {
+                 $('#location_count').text($.formatNumber(stats_data.location_count, {format:'#,###', locale:'us'}));
+                 $('#location_count').parent().show();
+             }
+             else {$('#location_count').parent.hide();}
              $('#stats').show();
              $('#project_name').text(project);
              $('#fb').setValue(project);
@@ -741,6 +759,10 @@
                 <tr>
                     <td class="label"># links:</td>
                     <td id="link_count">0</td>
+                </tr>
+                <tr style="display:none;">
+                    <td class="label"># locations:</td>
+                    <td id="location_count">0</td>
                 </tr>
             </table>
         </div>
