@@ -142,7 +142,7 @@ class Query:
           if p and p.has_key('lat') and p.has_key('long') and (p['lat'] != c['lat']) and (p['long'] != c['long']) :
             if linkAggregation:
             #results['links'].append([c, p])
-              key = ((c['long'], c['lat']),(p['long'], p['lat']))
+              key = ((c['long'], c['lat']),(p['long'], p['lat']), c['date'])
               links[key] = links[key] + 1
             else:
               results['links'].append(((c['long'], c['lat']),(p['long'], p['lat']), c['date']))

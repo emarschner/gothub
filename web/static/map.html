@@ -349,7 +349,7 @@
                 date_start = new Date(date_start[1], date_start[0]-1);
                 var date_end = datePairs[vals[1]];
                 date_end = new Date(date_end[1], date_end[0]-1);
-                var data = {links: [], locations: {}};
+                var data = {links: [], locations: {}, stats: {}};
                 var elDate, link, hash;
                 for (var i = 0; i < masterData.links.length; i++)
                 {
@@ -376,6 +376,8 @@
                     circles.push({long: parseFloat(strip[0]), lat: parseFloat(strip[1]), loc_count: data.locations[idx]});
                 }
                 data.locations = circles;
+                data.stats.link_count = data.links.count;
+                data.stats.locations = data.circles.count;
                 annotateMap(data);
             };
             
