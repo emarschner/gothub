@@ -466,7 +466,7 @@
                             +'<select style="display:none;" name="valueB" id="valueB">'+options+'</select></form>';
                 
                 $('#slider').append($(newEl));
-                $('#valueB option')[1].selected = true;
+                $('#valueB option')[$('#valueB option').length-1].selected = true;
                 var temp = $('select').selectToUISlider({
                                 labels: 7
                             });
