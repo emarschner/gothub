@@ -9,11 +9,8 @@
     <script type="text/javascript" src="jquery-ui.min.js"></script>
     <script type="text/javascript" src="jquery.numberformatter.min.js"></script>
     <script type="text/javascript" src="jquery.ui.autocomplete.selectFirst.js"></script>
-    <!--<link type="text/css" href="ui-lightness/jquery-ui-1.8.6.custom.css" rel="stylesheet" />-->
     <link type="text/css" href="dot-luv/jquery-ui-1.8.6.custom.css" rel="stylesheet" />
-    <!--<script type="text/javascript" src="jquery-ui-1.7.1.custom.min.js"></script> -->
     <script type="text/javascript" src="selectToUISlider.jQuery.js"></script> 
-    <!--<link rel="stylesheet" href="jquery-ui-1.7.1.custom.css" type="text/css" /> -->
     <link rel="Stylesheet" href="ui.slider.extras.css" type="text/css" />
     <style type="text/css">
 
@@ -179,11 +176,12 @@
             width: 500px;
             padding: 0 0.25em;
         }
+        
         /*
-        .ui-autocomplete-loading {
-            background: url('ui-lightness/images/ui-anim_baasic_16x16.gif') right center no-repeat;
-        }
-        */
+         .ui-autocomplete-loading {
+             background: url('ui-lightness/images/ui-anim_baasic_16x16.gif') right center no-repeat;
+         }
+         */
     </style>
     <script type="text/javascript">
         var urlParams = {};
@@ -255,7 +253,7 @@
         }
         DOT_STROKE_OPACITY = 0.5;
         
-        var HOST = 'http://nfcm5:9090';
+        var HOST = 'http://nfcm5:8080';
 
         if (style == "original") {
             CLOUDMADE_MAP_ID = 998;
@@ -382,13 +380,7 @@
             };
             
             var showNext = function()
-            {
-                $.each(svgEls, function(idx, el){
-                   $.each(el, function(i, e){
-                      map.remove(e); 
-                   });
-                });
-                
+            {   
                 var vals = $('.ui-slider').slider('values');
                 if (vals[1]+1 >= datePairs.length)
                 {
@@ -396,6 +388,16 @@
                 }
                 else
                 {
+                    $.each(svgEls, function(idx, el){
+                       $.each(el, function(i, e){
+                          map.remove(e); 
+                       });
+                    });
+
+                    svgEls = {
+                        circles: [],
+                        lines: []
+                    };
                     $('.ui-slider').slider('values', [vals[0], vals[1]+1]);
                     draw();
                 }
@@ -459,6 +461,9 @@
             }
             
             var start = function() {
+                var vals = $('.ui-slider').slider('values');
+                if (vals[1]+1 >= datePairs.length)
+                $('.ui-slider').slider('values', [vals[0], vals[0]+1]);
                 interval =  setInterval("animator.showNext()", 1000);
             }
 
@@ -469,6 +474,7 @@
             var stop = function() {
                 clearInterval(interval);
                 interval = null;
+                $('#play').attr("src", 'play.png');
             };
 
             return {
@@ -536,7 +542,10 @@
                                  p.style('stroke', DOT_STROKE_COLOR);
                                  p.style('stroke-opacity', DOT_STROKE_OPACITY);
                                  p.style('opacity', f.data.size / 2);
-                                 p.attr('r', Math.sqrt(f.data.size * DOT_SCALE * scale));
+                                 if (!presentationMode)
+                                    p.attr('r', Math.sqrt(f.data.size * DOT_SCALE * scale));
+                                else
+                                    p.attr('r', Math.pow(f.data.size * DOT_SCALE * scale, 0.35));
                              });
                          }
                      );
@@ -627,6 +636,9 @@
              if (stats_data.commit_count > 0) $('#commit_count').text($.formatNumber(stats_data.commit_count, {format:'#,###', locale:'us'}));
              if (stats_data.link_count > 0) $('#link_count').text($.formatNumber(stats_data.link_count, {format:'#,###', locale:'us'}));
              $('#stats').show();
+             $('#project_name').text(project);
+             $('#fb').setValue(project);
+             $('#searchbox').attr('value', project);
         }
 
         $(document).ready(function() {
@@ -635,11 +647,10 @@
             map = po.map()
                 .container(document.getElementById("map").appendChild(po.svg("svg")))
                 .center({lat: 20, lon: 10})
-                //.add(po.interact())
+                .zoom(2)
                 .add(po.drag())
                 .add(po.dblclick())
-                .add(po.wheel())
-                .zoom(2);
+                .add(po.wheel());
 
             map.add(po.image()
                 .url(po.url("http://{S}tile.cloudmade.com"
@@ -664,146 +675,6 @@
                     }
                     else
                     {
-                        link_data = data.links;
-                        location_data = data.locations;
-                        stats_data = data.stats;
-                        //geoData.setData(data);
-                        //geoData.showNext();
-                        var arr = []
-                        location_data.sort(sortCircles);
-                        if (circles) {
-                            for (var i = 0; i < location_data.length; i++) {
-                                var l = location_data[i]
-                                map.add(po.geoJson().features([
-                                    {
-                                        "geometry": {
-                                            "coordinates": [ l.long, l.lat ],
-                                            "type": "Point"
-                                        },
-                                        "size": l.loc_count
-                                    }
-                                ]).on(
-                                    'load',
-                                    function(e) {
-                                        e.features.forEach(function(f) {
-                                            var p = n$(f.element);
-                                            /*
-                                            p.on('mouseover', function() {
-                                                point = n$(this);
-                                                point.style('fill', 'black');
-                                                point.style('opacity', 1);
-                                            });
-                                            p.on('mouseout', function() {
-                                                point = n$(this);
-                                                point.style('opacity', 'green');
-                                                point.style('opacity', f.data.size / 2);
-                                            });
-                                            */
-                                            p.style('fill', DOT_FILL_COLOR);
-                                            p.style('stroke', DOT_STROKE_COLOR);
-                                            p.style('stroke-opacity', DOT_STROKE_OPACITY);
-                                            p.style('opacity', f.data.size / 2);
-                                            p.attr('r', Math.sqrt(f.data.size * DOT_SCALE * scale));
-                                        });
-                                    }
-                                ));
-
-                                if (names) {
-                                    map.add(po.geoJson().features([
-                                        {
-                                            "geometry": {
-                                                "coordinates": [ l.long, l.lat ],
-                                                "type": "Point"
-                                            },
-                                            "location": l.locations[0],
-                                            "size": l.loc_count
-                                        }
-                                    ]).on(
-                                        'load',
-                                        function(e) {
-                                            e.features.forEach(function(f) {
-                                                var p = n$(f.element);
-                                                p.attr('opacity', 0);
-                                                if (f.data.location) {
-                                                    var g = p.parent().add('svg:g', p);
-                                                    g.attr('transform', p.attr('transform'));
-                                                    var r = Math.sqrt(f.data.size * 50);
-                                                    g.add('svg:text')
-                                                        .attr('transform', 'translate(' + (r + 3) + ',' + (-r) + ')')
-                                                        .style('fill', NAME_FILL_COLOR)
-                                                        .style('stroke', NAME_STROKE_COLOR)
-                                                        .style('opacity', NAME_OPACITY)
-                                                        .style('font-size', NAME_FONT_SIZE)
-                                                        .text(f.data.location);
-                                                    /*
-                                                    g.add('svg:rect')
-                                                        .attr('x', -3)
-                                                        .attr('y', -11)
-                                                        .attr('width', text.element.offsetWidth)
-                                                        .attr('height', 15)
-                                                        .style('opacity', '0.5')
-                                                        .style('fill', 'black');
-                                                    */
-                                                }
-                                            });
-                                        }
-                                    ));
-                                }
-                            }
-                        }
-                        if (lines) {
-                            link_data.sort(sortLinks);
-                            var scaleFunc;
-                            if (linkMaxScale)
-                                scaleFunc = linearScale(linkMaxScale, 0.02, 0.3);
-                            for (var i = 0; i < link_data.length; i++)
-                            {
-                                var l = link_data[i];
-                                var strength = l[1];
-                                var c = l[0];
-                                var coords;
-                                if (linkAggregation)
-                                    coords = [ [c[0][0], c[0][1]], [c[1][0], c[1][1]] ];
-                                else
-                                    coords = [ [l[0][0], l[0][1]], [l[1][0], l[1][1]] ];
-                                //arr.push([ [l[0].long, l[0].lat], [l[1].long, l[1].lat] ]);
-                                map.add(po.geoJson().features([
-                                    {
-                                        "geometry": {
-                                            "coordinates": coords,
-                                            "type": "LineString"
-                                        }
-                                    }
-                                ]).on(
-                                    'load', (function(){
-                                    var oVal = 0.02//get_link_opacity(link_data.length, LINK_MIN_OPACITY);
-                                    if (linkAggregation && scaleFunc != null)
-                                        oVal = scaleFunc(strength);
-                                    return po.stylist().attr("stroke", LINK_COLOR)
-                                                .attr("stroke-width", LINK_WIDTH)
-                                                .attr("stroke-opacity", oVal);
-                                    })()
-                                ));
-                            }
-                        }
-                        if (stats_data.author_count > 0) $('#people_count').text($.formatNumber(stats_data.author_count, {format:'#,###', locale:'us'}));
-                        if (stats_data.commit_count > 0) $('#commit_count').text($.formatNumber(stats_data.commit_count, {format:'#,###', locale:'us'}));
-                        if (stats_data.link_count > 0) $('#link_count').text($.formatNumber(stats_data.link_count, {format:'#,###', locale:'us'}));
-                        $('#stats').show();
-                        $('#project_name').text(project);
-                        $('#searchbox').attr('value', project);
-                        /*map.add(po.geoJson()
-                        .features([
-                            {
-                                "geometry": {
-                                "coordinates": arr,
-                                "type": "MultiLineString"
-                                }
-                            },
-                            ]).on('load', 
-                                    po.stylist()
-                                                .attr("stroke-opacity", function(d) { return 0.2;}))
-                        );*/
                         animator.init();
                     }
 
@@ -839,7 +710,6 @@
             $('#play').click(function(){
                 if (animator.isActive())
                 {
-                    $(this).attr("src", 'play.png');
                     animator.stop();
                 }
                 else
@@ -887,4 +757,3 @@
 <!--
 vim: ts=4 sw=4 sts=4 expandtab:
 -->
-
