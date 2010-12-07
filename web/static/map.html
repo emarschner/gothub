@@ -22,6 +22,14 @@
         label {font-weight: normal; float: left; margin-right: .5em; font-size: 1.1em;}
         select {margin-right: 1em; float: left;}
         .ui-slider {clear: both; top: 2em;}
+
+        #controls {
+            position: absolute;
+            left: 0;
+            bottom: 0;
+            width: 100%;
+            height: 150px;
+        }
         
         #container {
           height: 10px;
@@ -36,8 +44,11 @@
 
         #play {
           position: absolute;
-          right: 200px;
-          top: 583px;
+          left: -50px;
+          top: 30px;
+          height: 17px;
+          width: 17px;
+          padding: 10px;
           cursor: pointer;
         }
         
@@ -58,11 +69,6 @@
             stroke: brown;
         }
 
-        html
-        {
-            height:550px;
-            width:1024px;
-        }
         body {
             margin: 0;
             background: #E5E0D9;
@@ -203,6 +209,11 @@
         if (urlParams['presentationMode'] && urlParams['presentationMode'] == "1")
             presentationMode = true;
 
+        if (!presentationMode) {
+            $('html').css('width', 1024);
+            $('html').css('height', 550);
+        }
+
         var project;
         if ("project" in urlParams) project = urlParams["project"];
         else project = "";
@@ -253,7 +264,7 @@
         }
         DOT_STROKE_OPACITY = 0.5;
         
-        var HOST = 'http://nfcm5:8080';
+        var HOST = 'http://nfcm5:9090';
 
         if (style == "original") {
             CLOUDMADE_MAP_ID = 998;
@@ -423,7 +434,8 @@
                 // generate array of m/y pairs
                 var month = firstMonth;
                 var year = firstYear;
-                var options = '<optgroup label="'+firstYear+'">\n';
+                var options = '';
+                //options = '<optgroup label="'+firstYear+'">\n';
                 while (true)
                 {
                     var end = false;
@@ -444,8 +456,8 @@
                     if (month > 12)
                     {
                         year++;
-                        options += '</optgroup>\n';
-                        options += '<optgroup label="'+year+'">';
+                        //options += '</optgroup>\n';
+                        //options += '<optgroup label="'+year+'">';
                         month = 1;
                     }
                 }
@@ -460,6 +472,7 @@
                             });
                 var x = 5;
                             
+                $('#play').show();
             }
             
             var start = function() {
@@ -476,7 +489,9 @@
             var stop = function() {
                 clearInterval(interval);
                 interval = null;
-                $('#play').attr("src", 'play.png');
+                //$('#play').attr("src", 'play.png');
+                $('#play span').removeClass('ui-icon-pause');
+                $('#play span').addClass('ui-icon-play');
             };
 
             return {
@@ -507,6 +522,7 @@
             {
                 source = masterData;
             }
+            console.log(source);
             link_data = source.links;
             location_data = source.locations;
             stats_data = source.stats;
@@ -622,7 +638,7 @@
                          }
                      ]).on(
                          'load', (function(){
-                         var oVal = 0.02//get_link_opacity(link_data.length, LINK_MIN_OPACITY);
+                         var oVal = 0.05//get_link_opacity(link_data.length, LINK_MIN_OPACITY);
                          if (linkAggregation && scaleFunc != null)
                              oVal = scaleFunc(strength);
                          return po.stylist().attr("stroke", LINK_COLOR)
@@ -648,17 +664,15 @@
              {
                  $('#link_count').text($.formatNumber(stats_data.link_count, {format:'#,###', locale:'us'}));
              }
-             else {$('#link_count').parent.hide();}
+             else {$('#link_count').parent().hide();}
              if (stats_data.location_count > 0) 
              {
                  $('#location_count').text($.formatNumber(stats_data.location_count, {format:'#,###', locale:'us'}));
                  $('#location_count').parent().show();
              }
-             else {$('#location_count').parent.hide();}
+             else {$('#location_count').parent().hide();}
              $('#stats').show();
              $('#project_name').text(project);
-             $('#fb').setValue(project);
-             $('#searchbox').attr('value', project);
         }
 
         $(document).ready(function() {
@@ -689,6 +703,7 @@
                 {
                     masterData = data;
                     $('#project_name').text(project);
+                    $('#searchbox').attr('value', project);
                     if (!presentationMode)
                     {
                         annotateMap();
@@ -734,7 +749,9 @@
                 }
                 else
                 {
-                    $(this).attr("src", 'stop.png');
+                    //$(this).attr("src", 'stop.png');
+                    $(this).find('span').removeClass('ui-icon-play');
+                    $(this).find('span').addClass('ui-icon-pause');
                     animator.start(); 
                 }
                 
@@ -770,11 +787,17 @@
             <input id="searchbox"/>
             <!--<h1 id="project_name"></h1>-->
         </div>
-    </div>
-    <div id="container"> 
-          <div id="slider"></div>
-          <img id="play" src="play.png" alt="Play"> 
+        <div id="controls">
+            <div id="container"> 
+                <div id="slider">
+                    <span style="display:none;" id="play" class="ui-state-default ui-corner-all">
+                        <span class="ui-icon ui-icon-play"></span>
+                    </span>
+                </div>
+                <!--<img id="play" src="play.png" alt="Play">-->
+            </div>
         </div>
+    </div>
   </body>
 </html>
 

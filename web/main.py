@@ -47,16 +47,6 @@ class Test:
     else:
       return "<h1> no name </h1>"
 
-class Garbage:
-  def junk():
-    cursor = db.command({
-      'distinct': 'commits',
-      'key': 'project',
-      'query': {
-        'project': pattern
-      }
-    })['values']
-
 class Projects:
   def GET(self):
     map = Code("""
