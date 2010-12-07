@@ -261,6 +261,8 @@
             }
         }
         DOT_STROKE_OPACITY = 0.5;
+        
+        var HOST = 'http://nfcm5:8080'
 
         if (style == "original") {
             CLOUDMADE_MAP_ID = 998;
@@ -339,40 +341,148 @@
             }
         };
 
-        var geoData = (function()
+        var animator = (function()
         {
             var data;
             var idx = 0;
             var point = null;
-            var timeout = null;
-            var showNext = function() {
-                if (point != null)
-                    map.remove(point)
-                var obj = data[idx];
-                idx = idx + 1;
-                point = po.geoJson().features([
+            var interval = null;
+            var firstMonth, firstYear, lastMonth, lastYear;
+            var datePairs = [];
+            var months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+            
+            
+            var draw = function() {
+                var vals = $('.ui-slider').slider('values');
+                var date_start = datePairs[vals[0]];
+                date_start = new Date(date_start[1], date_start[0]-1);
+                var date_end = datePairs[vals[1]];
+                date_end = new Date(date_end[1], date_end[0]-1);
+                var data = {links: [], locations: {}};
+                var elDate, link, hash;
+                for (var i = 0; i < masterData.links.length; i++)
+                {
+                    link = masterData.links[i];
+                    elDate = eval(link[2]);
+                    if ((date_start.getTime() < elDate.getTime()) && (elDate.getTime() < date_end.getTime()))
                     {
-                    "geometry": {
-                        "coordinates": [obj.long, obj.lat],
-                        "type": "Point"
+                        data.links.push(link);
+                        hash = link[0][0]+','+link[0][1];
+                        if (hash in data.locations)
+                        {
+                            data.locations[hash] += 1;
+                        }
+                        else
+                        {
+                            data.locations[hash] = 1;
+                        }
                     }
-                    }]);
-                map.add(point);
-                timeout = setTimeout("geoData.showNext()", 100);
+                }
+                var circles = [];
+                for (var idx in data.locations)
+                {
+                    var strip = idx.split(',');
+                    circles.push({long: parseFloat(strip[0]), lat: parseFloat(strip[1]), loc_count: data.locations[idx]});
+                }
+                data.locations = circles;
+                annotateMap(data);
             };
+            
+            var showNext = function()
+            {
+                $.each(svgEls, function(idx, el){
+                   $.each(el, function(i, e){
+                      map.remove(e); 
+                   });
+                });
+                
+                var vals = $('.ui-slider').slider('values');
+                if (vals[1]+1 >= datePairs.length)
+                {
+                    stop();
+                }
+                else
+                {
+                    $('.ui-slider').slider('values', [vals[0], vals[1]+1]);
+                    draw();
+                }
+
+                
+            }
+            
+            var init = function()
+            {
+                // sort by date ascending
+                masterData.links.sort(sortLinksDate);
+                
+                // get m/y endpoints
+                var dt = eval(masterData.links[0][2]);
+                firstMonth = dt.getMonth()+1;
+                firstYear = dt.getFullYear();
+                dt = eval(masterData.links[masterData.links.length-1][2]);
+                lastMonth = dt.getMonth()+1;
+                lastYear = dt.getFullYear();
+                
+                // generate array of m/y pairs
+                var month = firstMonth;
+                var year = firstYear;
+                var options = '<optgroup label="'+firstYear+'">\n';
+                while (true)
+                {
+                    var end = false;
+                    if (month == lastMonth && year == lastYear)
+                    {
+                        end = true;
+                    }
+                    datePairs.push([month, year]);
+                    options += '<option value="'+month+'/'+year+'">'
+                        +months[month-1]+' '+((year%100) < 10 ? "0"+(year%100) : (year%100))+'</option>\n';
+                    month++;
+                    if (end)
+                    {
+                        options += '</optgroup>\n';
+                        break;
+                    }
+                        
+                    if (month > 12)
+                    {
+                        year++;
+                        options += '</optgroup>\n';
+                        options += '<optgroup label="'+year+'">';
+                        month = 1;
+                    }
+                }
+                
+                var newEl = '<form action="#"><select style="display:none;" name="valueA" id="valueA">'+options+'</select>'
+                            +'<select style="display:none;" name="valueB" id="valueB">'+options+'</select></form>';
+            	
+            	$('#slider').append($(newEl));
+            	$('#valueB option')[1].selected = true;
+            	var temp = $('select').selectToUISlider({
+                				labels: 7
+                			});
+                var x = 5;
+                			
+            }
+            
+            var start = function() {
+                interval =  setInterval("animator.showNext()", 1000);
+            }
 
             var setData = function(theData) {
                 data = theData;
             };
 
             var stop = function() {
-                clearTimeout(timeout);
+                clearInterval(interval);
             };
 
             return {
+                init: init,
                 setData : setData,
                 showNext : showNext,
-                stop : stop
+                stop : stop,
+                start : start
             };
         })();
         
@@ -543,7 +653,7 @@
             );
 
             $.ajax({
-                url: 'http://nfcm5:8080/query' + formatUrlParams(),
+                url: HOST+'/query' + formatUrlParams(),
                 dataType: "jsonp",
                 jsonpCallback: "jsonpcallback",
                 success: function(data, status)
@@ -563,7 +673,7 @@
                 }
             });
 
-            $('#fb').flexbox('/projects', {
+            $('#fb').flexbox(HOST+'/projects', {
                 showArrow: false,
                 queryDelay: 500,
                 width: 500,
