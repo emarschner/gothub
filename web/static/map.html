@@ -190,6 +190,10 @@
          */
     </style>
     <script type="text/javascript">
+        var ZOOM = 2.8;
+        var LON_START = 25;
+        var LAT_START = 10;
+        var TOTAL_ANIM_TIME_MS = 20000;
         var urlParams = {};
         (function () {
             var e,
@@ -264,7 +268,7 @@
         }
         DOT_STROKE_OPACITY = 0.5;
         
-        var HOST = 'http://nfcm5:9090';
+        var HOST = 'http://localhost:8080';
 
         if (style == "original") {
             CLOUDMADE_MAP_ID = 998;
@@ -484,7 +488,7 @@
                     interval =  setInterval("animator.showNext()", 800);
                 }
                 else { 
-                    interval =  setInterval("animator.showNext()", Math.max(100, 30000/datePairs.length));
+                    interval =  setInterval("animator.showNext()", Math.max(100, TOTAL_ANIM_TIME_MS/datePairs.length));
                 }
                 
             }
@@ -687,8 +691,8 @@
             po = org.polymaps;
             map = po.map()
                 .container(document.getElementById("map").appendChild(po.svg("svg")))
-                .center({lat: 20, lon: 10})
-                .zoom(2)
+                .center({lat: LAT_START, lon: LON_START})
+                .zoom(ZOOM)
                 .add(po.drag())
                 .add(po.dblclick())
                 .add(po.wheel());
