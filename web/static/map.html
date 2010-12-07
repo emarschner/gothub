@@ -466,7 +466,7 @@
                 var vals = $('.ui-slider').slider('values');
                 if (vals[1]+1 >= datePairs.length)
                 $('.ui-slider').slider('values', [vals[0], vals[0]+1]);
-                interval =  setInterval("animator.showNext()", 1000);
+                interval =  setInterval("animator.showNext()", Math.max(100, 30000/datePairs.length));
             }
 
             var setData = function(theData) {
