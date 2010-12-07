@@ -3,6 +3,7 @@ import logging
 #import model
 #import markdown
 import pymongo
+from pymongo.code import Code
 import re
 from pymongo.objectid import ObjectId
 import json
@@ -46,9 +47,8 @@ class Test:
     else:
       return "<h1> no name </h1>"
 
-class Projects:
-  def GET(self):
-    pattern = re.compile('^' + web.input().q + '.*')
+class Garbage:
+  def junk():
     cursor = db.command({
       'distinct': 'commits',
       'key': 'project',
@@ -56,11 +56,29 @@ class Projects:
         'project': pattern
       }
     })['values']
-    response = {'results': []}
-    results = response['results']
-    for v in cursor:
-      results.append({'id': v, 'name': v})
-    return json.dumps(response)
+
+class Projects:
+  def GET(self):
+    map = Code("""
+      function() {
+        emit(this.project, 1);
+      }
+    """);
+    reduce = Code("""
+      function(key, values) {
+        var total = 0;
+        values.forEach(function(v) {
+          total += v
+        });
+        return total;
+      }
+    """);
+    pattern = re.compile('^' + web.input().term + '.*')
+    result = db.commits.map_reduce(map, reduce, query={'project': pattern})
+    results = []
+    for item in sorted(result.find(), key=lambda item: -item['value'])[:10]:
+      results.append({'label': item['_id'], 'value': item['_id'], 'count': item['value']})
+    return json.dumps(results)
 
 class Query:
   def GET(self):
