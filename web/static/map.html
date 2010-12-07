@@ -22,7 +22,25 @@
 		fieldset { border:0; margin-top: 1em;}	
 		label {font-weight: normal; float: left; margin-right: .5em; font-size: 1.1em;}
 		select {margin-right: 1em; float: left;}
-		.ui-slider {clear: both; top: 5em;}
+		.ui-slider {clear: both; top: 2em;}
+		
+		#container {
+          height: 10px;
+        }
+
+        #slider {
+          position: absolute;
+          left: 100;
+          right: 90;
+          margin-top: 3;
+        }
+
+        #play {
+          position: absolute;
+          right: 200px;
+          top: 583px;
+          cursor: pointer;
+        }
 		
         #slider {
             font-size: 1em;
@@ -262,7 +280,7 @@
         }
         DOT_STROKE_OPACITY = 0.5;
         
-        var HOST = 'http://nfcm5:8080'
+        var HOST = 'http://nfcm5:8080';
 
         if (style == "original") {
             CLOUDMADE_MAP_ID = 998;
@@ -475,6 +493,7 @@
 
             var stop = function() {
                 clearInterval(interval);
+                interval = null;
             };
 
             return {
@@ -482,7 +501,8 @@
                 setData : setData,
                 showNext : showNext,
                 stop : stop,
-                start : start
+                start : start,
+                isActive : function() { return interval != null;}
             };
         })();
         
@@ -682,6 +702,21 @@
                     window.location = '/static/map.html' + formatUrlParams({'project': this.value});
                 }
             });
+            
+            $('#play').click(function(){
+                if (animator.isActive())
+                {
+                    $(this).attr("src", 'play.png');
+                    animator.stop();
+                }
+                else
+                {
+                    $(this).attr("src", 'stop.png');
+                    animator.start(); 
+                }
+                
+               
+            });
         });
     </script>
     <!--<script type="text/javascript" src="map.js"></script>-->
@@ -709,8 +744,10 @@
             <!--<h1 id="project_name"></h1>-->
         </div>
     </div>
-    <div id="slider">
-    </div>
+    <div id="container"> 
+          <div id="slider"></div>
+          <img id="play" src="play.png" alt="Play"> 
+        </div>
   </body>
 </html>
 
