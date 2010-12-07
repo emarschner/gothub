@@ -145,7 +145,7 @@ class Query:
               key = ((c['long'], c['lat']),(p['long'], p['lat']))
               links[key] = links[key] + 1
             else:
-              results['links'].append(((c['long'], c['lat']),(p['long'], p['lat'])))
+              results['links'].append(((c['long'], c['lat']),(p['long'], p['lat']), c['date']))
               link_count += 1
         seen.add(c['sha1'])
 

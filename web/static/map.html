@@ -9,10 +9,44 @@
     <script type="text/javascript" src="jquery-ui.min.js"></script>
     <script type="text/javascript" src="jquery.numberformatter.min.js"></script>
     <link type="text/css" href="ui-lightness/jquery-ui-1.8.6.custom.css" rel="stylesheet" />
+    <!--<script type="text/javascript" src="jquery-ui-1.7.1.custom.min.js"></script> -->
+    <script type="text/javascript" src="selectToUISlider.jQuery.js"></script> 
+    <!--<link rel="stylesheet" href="jquery-ui-1.7.1.custom.css" type="text/css" /> -->
+    <link rel="Stylesheet" href="ui.slider.extras.css" type="text/css" />
     <style type="text/css">
 
         #map { position: relative; }
 
+        p { clear:both; }
+        form { margin: 0 30px;}
+        fieldset { border:0; margin-top: 1em;}    
+        label {font-weight: normal; float: left; margin-right: .5em; font-size: 1.1em;}
+        select {margin-right: 1em; float: left;}
+        .ui-slider {clear: both; top: 2em;}
+        
+        #container {
+          height: 10px;
+        }
+
+        #slider {
+          position: absolute;
+          left: 100;
+          right: 90;
+          margin-top: 3;
+        }
+
+        #play {
+          position: absolute;
+          right: 200px;
+          top: 583px;
+          cursor: pointer;
+        }
+        
+        #slider {
+            font-size: 1em;
+            margin: 0 auto;
+            width: 700px;
+        }
         .layer path {
             fill: lightsteelblue;
             fill-opacity: .5;
@@ -160,6 +194,9 @@
         var style = urlParams['style'];
         if (style == null)
             style = "midnight";
+        var presentationMode = false;
+        if (urlParams['presentationMode'] && urlParams['presentationMode'] == "1")
+            presentationMode = true;
 
         var project;
         if ("project" in urlParams) project = urlParams["project"];
@@ -180,6 +217,7 @@
         else linkAggregation = false;
         if ('linkMaxScale' in urlParams) linkMaxScale = parseInt(urlParams['linkMaxScale']);
         else linkMaxScale = 0;
+        
 
         var formatUrlParams = function(overrides) {
             overrides = overrides || {}
@@ -209,6 +247,8 @@
             }
         }
         DOT_STROKE_OPACITY = 0.5;
+        
+        var HOST = 'http://nfcm5:8080';
 
         if (style == "original") {
             CLOUDMADE_MAP_ID = 998;
@@ -262,15 +302,22 @@
             LINK_MIN_OPACITY = 0.00;
         }
 
-        var sortCircles = function(a, b)
+        // Sorts circles to by size descending
+        var sortCirclesSize = function(a, b)
         {
             return b.loc_count - a.loc_count;
         };
 
-        var sortLinks = function(a, b)
+        // Sorts links by opacity descending
+        var sortLinksOpacity = function(a, b)
         {
             return b[1] - a[1];
         };
+        
+        var sortLinksDate = function(a, b)
+        {
+            return eval(a[2]).getTime() - eval(b[2]).getTime();
+        }
 
         var linearScale = function(maxIndex, minValue, maxValue)
         {
@@ -280,119 +327,332 @@
             }
         };
 
-        var geoData = (function()
+        var animator = (function()
         {
             var data;
             var idx = 0;
             var point = null;
-            var timeout = null;
-            var showNext = function() {
-                if (point != null)
-                    map.remove(point)
-                var obj = data[idx];
-                idx = idx + 1;
-                point = po.geoJson().features([
+            var interval = null;
+            var firstMonth, firstYear, lastMonth, lastYear;
+            var datePairs = [];
+            var months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+            
+            
+            var draw = function() {
+                var vals = $('.ui-slider').slider('values');
+                var date_start = datePairs[vals[0]];
+                date_start = new Date(date_start[1], date_start[0]-1);
+                var date_end = datePairs[vals[1]];
+                date_end = new Date(date_end[1], date_end[0]-1);
+                var data = {links: [], locations: {}};
+                var elDate, link, hash;
+                for (var i = 0; i < masterData.links.length; i++)
+                {
+                    link = masterData.links[i];
+                    elDate = eval(link[2]);
+                    if ((date_start.getTime() < elDate.getTime()) && (elDate.getTime() < date_end.getTime()))
                     {
-                    "geometry": {
-                        "coordinates": [obj.long, obj.lat],
-                        "type": "Point"
+                        data.links.push(link);
+                        hash = link[0][0]+','+link[0][1];
+                        if (hash in data.locations)
+                        {
+                            data.locations[hash] += 1;
+                        }
+                        else
+                        {
+                            data.locations[hash] = 1;
+                        }
                     }
-                    }]);
-                map.add(point);
-                timeout = setTimeout("geoData.showNext()", 100);
+                }
+                var circles = [];
+                for (var idx in data.locations)
+                {
+                    var strip = idx.split(',');
+                    circles.push({long: parseFloat(strip[0]), lat: parseFloat(strip[1]), loc_count: data.locations[idx]});
+                }
+                data.locations = circles;
+                annotateMap(data);
             };
+            
+            var showNext = function()
+            {
+                $.each(svgEls, function(idx, el){
+                   $.each(el, function(i, e){
+                      map.remove(e); 
+                   });
+                });
+                
+                var vals = $('.ui-slider').slider('values');
+                if (vals[1]+1 >= datePairs.length)
+                {
+                    stop();
+                }
+                else
+                {
+                    $('.ui-slider').slider('values', [vals[0], vals[1]+1]);
+                    draw();
+                }
+
+                
+            }
+            
+            var init = function()
+            {
+                // sort by date ascending
+                masterData.links.sort(sortLinksDate);
+                
+                // get m/y endpoints
+                var dt = eval(masterData.links[0][2]);
+                firstMonth = dt.getMonth()+1;
+                firstYear = dt.getFullYear();
+                dt = eval(masterData.links[masterData.links.length-1][2]);
+                lastMonth = dt.getMonth()+1;
+                lastYear = dt.getFullYear();
+                
+                // generate array of m/y pairs
+                var month = firstMonth;
+                var year = firstYear;
+                var options = '<optgroup label="'+firstYear+'">\n';
+                while (true)
+                {
+                    var end = false;
+                    if (month == lastMonth && year == lastYear)
+                    {
+                        end = true;
+                    }
+                    datePairs.push([month, year]);
+                    options += '<option value="'+month+'/'+year+'">'
+                        +months[month-1]+' '+((year%100) < 10 ? "0"+(year%100) : (year%100))+'</option>\n';
+                    month++;
+                    if (end)
+                    {
+                        options += '</optgroup>\n';
+                        break;
+                    }
+                        
+                    if (month > 12)
+                    {
+                        year++;
+                        options += '</optgroup>\n';
+                        options += '<optgroup label="'+year+'">';
+                        month = 1;
+                    }
+                }
+                
+                var newEl = '<form action="#"><select style="display:none;" name="valueA" id="valueA">'+options+'</select>'
+                            +'<select style="display:none;" name="valueB" id="valueB">'+options+'</select></form>';
+                
+                $('#slider').append($(newEl));
+                $('#valueB option')[1].selected = true;
+                var temp = $('select').selectToUISlider({
+                                labels: 7
+                            });
+                var x = 5;
+                            
+            }
+            
+            var start = function() {
+                interval =  setInterval("animator.showNext()", 1000);
+            }
 
             var setData = function(theData) {
                 data = theData;
             };
 
             var stop = function() {
-                clearTimeout(timeout);
+                clearInterval(interval);
+                interval = null;
             };
 
             return {
+                init: init,
                 setData : setData,
                 showNext : showNext,
-                stop : stop
+                stop : stop,
+                start : start,
+                isActive : function() { return interval != null;}
             };
         })();
+        
+        var svgEls = {
+            circles: [],
+            lines: []
+        };
+        
+        var masterData;
+        
+        var annotateMap = function()
+        {
+            var link_data, location_data, stats_data, source;
+            if (arguments.length)
+            {
+                source = arguments[0];
+            }
+            else
+            {
+                source = masterData;
+            }
+            link_data = source.links;
+            location_data = source.locations;
+            stats_data = source.stats;
+             var arr = []
+             location_data.sort(sortCirclesSize);
+             if (circles) {
+                 for (var i = 0; i < location_data.length; i++) {
+                     var l = location_data[i]
+                     var el = po.geoJson().features([
+                         {
+                             "geometry": {
+                                 "coordinates": [ l.long, l.lat ],
+                                 "type": "Point"
+                             },
+                             "size": l.loc_count
+                         }
+                     ]).on(
+                         'load',
+                         function(e) {
+                             e.features.forEach(function(f) {
+                                 var p = n$(f.element);
+                                 /*
+                                 p.on('mouseover', function() {
+                                     point = n$(this);
+                                     point.style('fill', 'black');
+                                     point.style('opacity', 1);
+                                 });
+                                 p.on('mouseout', function() {
+                                     point = n$(this);
+                                     point.style('opacity', 'green');
+                                     point.style('opacity', f.data.size / 2);
+                                 });
+                                 */
+                                 p.style('fill', DOT_FILL_COLOR);
+                                 p.style('stroke', DOT_STROKE_COLOR);
+                                 p.style('stroke-opacity', DOT_STROKE_OPACITY);
+                                 p.style('opacity', f.data.size / 2);
+                                 p.attr('r', Math.sqrt(f.data.size * DOT_SCALE * scale));
+                             });
+                         }
+                     );
+                     svgEls.circles.push(el);
+                     map.add(el);
+
+                     if (names) {
+                         map.add(po.geoJson().features([
+                             {
+                                 "geometry": {
+                                     "coordinates": [ l.long, l.lat ],
+                                     "type": "Point"
+                                 },
+                                 "location": l.locations[0],
+                                 "size": l.loc_count
+                             }
+                         ]).on(
+                             'load',
+                             function(e) {
+                                 e.features.forEach(function(f) {
+                                     var p = n$(f.element);
+                                     p.attr('opacity', 0);
+                                     if (f.data.location) {
+                                         var g = p.parent().add('svg:g', p);
+                                         g.attr('transform', p.attr('transform'));
+                                         var r = Math.sqrt(f.data.size * 50);
+                                         g.add('svg:text')
+                                             .attr('transform', 'translate(' + (r + 3) + ',' + (-r) + ')')
+                                             .style('fill', NAME_FILL_COLOR)
+                                             .style('stroke', NAME_STROKE_COLOR)
+                                             .style('opacity', NAME_OPACITY)
+                                             .style('font-size', NAME_FONT_SIZE)
+                                             .text(f.data.location);
+                                         /*
+                                         g.add('svg:rect')
+                                             .attr('x', -3)
+                                             .attr('y', -11)
+                                             .attr('width', text.element.offsetWidth)
+                                             .attr('height', 15)
+                                             .style('opacity', '0.5')
+                                             .style('fill', 'black');
+                                         */
+                                     }
+                                 });
+                             }
+                         ));
+                     }
+                 }
+             }
+             if (lines) {
+                 link_data.sort(sortLinksOpacity);
+                 var scaleFunc;
+                 if (linkMaxScale)
+                     scaleFunc = linearScale(linkMaxScale, 0.02, 0.3);
+                 for (var i = 0; i < link_data.length; i++)
+                 {
+                     var l = link_data[i];
+                     var strength = l[1];
+                     var c = l[0];
+                     var coords;
+                     if (linkAggregation)
+                         coords = [ [c[0][0], c[0][1]], [c[1][0], c[1][1]] ];
+                     else
+                         coords = [ [l[0][0], l[0][1]], [l[1][0], l[1][1]] ];
+                     //arr.push([ [l[0].long, l[0].lat], [l[1].long, l[1].lat] ]);
+                     var el = po.geoJson().features([
+                         {
+                             "geometry": {
+                                 "coordinates": coords,
+                                 "type": "LineString"
+                             }
+                         }
+                     ]).on(
+                         'load', (function(){
+                         var oVal = 0.02//get_link_opacity(link_data.length, LINK_MIN_OPACITY);
+                         if (linkAggregation && scaleFunc != null)
+                             oVal = scaleFunc(strength);
+                         return po.stylist().attr("stroke", LINK_COLOR)
+                                     .attr("stroke-width", LINK_WIDTH)
+                                     .attr("stroke-opacity", oVal);
+                         })()
+                     );
+                     svgEls.lines.push(el);
+                     map.add(el);
+                 }
+             }
+             if (stats_data.author_count > 0) $('#people_count').text($.formatNumber(stats_data.author_count, {format:'#,###', locale:'us'}));
+             if (stats_data.commit_count > 0) $('#commit_count').text($.formatNumber(stats_data.commit_count, {format:'#,###', locale:'us'}));
+             if (stats_data.link_count > 0) $('#link_count').text($.formatNumber(stats_data.link_count, {format:'#,###', locale:'us'}));
+             $('#stats').show();
+        }
 
         $(document).ready(function() {
             map = null;
             po = org.polymaps;
+            map = po.map()
+                .container(document.getElementById("map").appendChild(po.svg("svg")))
+                .center({lat: 20, lon: 10})
+                .zoom(2)
+                .add(po.interact());
 
-            $(function(){
-                map = po.map()
-                    .container(document.getElementById("map").appendChild(po.svg("svg")))
-                    .center({lat: 20, lon: 10})
-                    .zoom(2)
-                    .add(po.interact());
+            map.add(po.image()
+                .url(po.url("http://{S}tile.cloudmade.com"
+                + "/1a1b06b230af4efdbb989ea99e9841af" // http://cloudmade.com/register
+                + "/"
+                + CLOUDMADE_MAP_ID
+                + "/256/{Z}/{X}/{Y}.png")
+                .hosts(["a.", "b.", "c.", ""]))
+            );
 
-                map.add(po.image()
-                    .url(po.url("http://{S}tile.cloudmade.com"
-                    + "/1a1b06b230af4efdbb989ea99e9841af" // http://cloudmade.com/register
-                    + "/"
-                    + CLOUDMADE_MAP_ID
-                    + "/256/{Z}/{X}/{Y}.png")
-                    .hosts(["a.", "b.", "c.", ""]))
-                );
-
-                /*
-                map.add(po.geoJson()
-                    .features([
-
+            $.ajax({
+                url: HOST+'/query' + formatUrlParams(),
+                dataType: "jsonp",
+                jsonpCallback: "jsonpcallback",
+                success: function(data, status)
                 {
-                "geometry": {
-                    "coordinates": [-122.289365, 37.816873],
-                    "type": "Point"
-                }
-                },
-                {
-                "geometry": {
-                    "coordinates": [[[
-                    [-122.289365, 37.816873],
-                    [-122.273176, 37.812709],
-                    [-122.278686, 37.807282],
-                    [-122.291530, 37.810804],
-                    [-122.289365, 37.816873]
-                    ]]],
-                    "type": "MultiPolygon"
-                },
-                "type": "Feature",
-                "id": "beat:05X",
-                "properties": {"name": "05X"}
-                },
-                {
-                "geometry": {
-                    "coordinates": [-121.289365, 37.816873],
-                    "type": "Point"
-                }
-                },
-                {
-                "geometry": {
-                    "coordinates": [-121.289365, 37.816873],
-                    "type": "Point"
-                }
-                },
-                {
-                    "geometry" : { "type": "LineString",
-                    "coordinates": [ [100.0, 0.0], [101.0, 1.0] ]
+                    masterData = data;
+                    $('#project_name').text(project);
+                    if (!presentationMode)
+                    {
+                        annotateMap();
                     }
-                }
-                    ]).on('load', 
-                            po.stylist().attr("stroke", function(d) { return "green"; })
-                                        .attr("stroke-width", function(d) { return 5;})
-                                        .attr("stroke-opacity", function(d) { return 0.2;})
-                        )
-                );
-                map.add(po.compass()
-                    .pan("none"));
-                */
-                $.ajax({
-                    url: '/query' + formatUrlParams(),
-                    dataType: "jsonp",
-                    jsonpCallback: "jsonpcallback",
-                    success: function(data, status)
+                    else
                     {
                         link_data = data.links;
                         location_data = data.locations;
@@ -521,7 +781,6 @@
                         if (stats_data.link_count > 0) $('#link_count').text($.formatNumber(stats_data.link_count, {format:'#,###', locale:'us'}));
                         $('#stats').show();
                         $('#project_name').text(project);
-                        $('#fb').setValue(project);
                         $('#searchbox').attr('value', project);
                         /*map.add(po.geoJson()
                         .features([
@@ -535,8 +794,10 @@
                                     po.stylist()
                                                 .attr("stroke-opacity", function(d) { return 0.2;}))
                         );*/
+                        animator.init();
                     }
-                });
+
+                }
             });
 
             $.fn.defaultText = function(value){
@@ -563,6 +824,21 @@
                     window.location = '/static/map.html' + formatUrlParams({'project': ui.item.value});
                 }
             });
+            
+            $('#play').click(function(){
+                if (animator.isActive())
+                {
+                    $(this).attr("src", 'play.png');
+                    animator.stop();
+                }
+                else
+                {
+                    $(this).attr("src", 'stop.png');
+                    animator.start(); 
+                }
+                
+               
+            });
         });
     </script>
     <!--<script type="text/javascript" src="map.js"></script>-->
@@ -586,11 +862,14 @@
             </table>
         </div>
         <div id="title">
-            <!--<div id="fb"></div>-->
             <input id="searchbox"/>
             <!--<h1 id="project_name"></h1>-->
         </div>
     </div>
+    <div id="container"> 
+          <div id="slider"></div>
+          <img id="play" src="play.png" alt="Play"> 
+        </div>
   </body>
 </html>
 
