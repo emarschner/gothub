@@ -704,11 +704,8 @@
                     masterData = data;
                     $('#project_name').text(project);
                     $('#searchbox').attr('value', project);
-                    if (!presentationMode)
-                    {
-                        annotateMap();
-                    }
-                    else
+                    annotateMap();
+                    if (presentationMode)
                     {
                         animator.init();
                     }
