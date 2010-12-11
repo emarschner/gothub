@@ -13,10 +13,7 @@ from pymongo import Connection
 #INPUT_DB = 'processed100k'
 INPUT_DB = 'processed'
 
-#COLLECTION = 'commits'
-#COLLECTION = 'commits_min'
-#COLLECTION = 'loc'
-COLLECTION = 'split'
+COLLECTION = 'commits'
 
 conn = Connection(slave_okay=True)
 processed = conn[INPUT_DB]
@@ -29,12 +26,24 @@ time_ranges = [
 ]
 
 geo_box_ranges = [
-    #['world', [[-89.0, -179.9], [89.9, 179.9]]],
-    ['bayarea', [[37.2, -123.0], [38.0, -121.0]]],
-    #['cali', [[32.81, -125.0], [42.0, -114.0]]],
-    #['america', [[25.0, -125.0], [50.0, -65.0]]],
-    #['europe', [[33.0, 40.0], [71.55, 71.55]]],
-    #['australia', [[-48.0, 113.1], [-10.5, 179.0]]]
+    ['world', [[-89.0, -179.9], [89.9, 179.9]]],
+    #['bayarea', [[37.2, -123.0], [38.0, -121.0]]],
+    ['cali', [[32.81, -125.0], [42.0, -114.0]]],
+    ['america', [[25.0, -125.0], [50.0, -65.0]]],
+    ['europe', [[33.0, 40.0], [71.55, 71.55]]],
+    ['australia', [[-48.0, 113.1], [-10.5, 179.0]]]
+]
+
+project_ranges = [
+    ['rails', 'rails'],
+    ['homebrew', 'homebrew'],
+    ['node', 'node']
+]
+
+combined_ranges = [
+    #['rails_bay_apr', ["rails", [datetime(2010, 4, 1), datetime(2010, 5, 1)], [[37.2, -123.0], [38.0, -121.0]] ]],
+    #['homebrew_bay_2010', ["homebrew", [datetime(2010, 1, 1), datetime(2011, 1, 1)], [[37.2, -123.0], [38.0, -121.0]] ]]
+    ['node_australia_2010', ["node", [datetime(2010, 1, 1), datetime(2011, 1, 1)], [[-48.0, 113.1], [-10.5, 179.0]]]]
 ]
 
 geo_circle_ranges = []
@@ -55,16 +64,16 @@ for entry in geo_box_ranges:
     radius = diag / 2
     EARTH_RADIUS_MILES = 3959
     miles = radius * EARTH_RADIUS_MILES
-    print "miles = %s" % miles
+    #print "miles = %s" % miles
     
     geo_near = [center, radius]
     test = [desc, geo_near]
     print "Test = %s" % test
-    geo_circle_ranges.append(test)
+    #geo_circle_ranges.append(test)
 
 def time_match(range):
     # range is [start_time, end_time]
-    return {"committed_date_native": {"$gte": range[0], "$lt": range[1]}}
+    return {"date": {"$gte": range[0], "$lt": range[1]}}
 
 def geo_box_match(range):
     # range is [lowerleft, upperright]
@@ -85,6 +94,21 @@ def geo_split_box_match(range):
         "long": {"$gt": range[0][1], "$lt": range[1][1]},
         "lat": {"$gt": range[0][0], "$lt": range[1][0]}
     }
+    
+def project_match(range):
+    return {
+        "project": range
+    }
+
+def combined_match(range):
+    query = {}
+    project_query = {"project": range[0]}
+    time_query = time_match(range[1])
+    geo_query = geo_split_box_match(range[2])
+    query.update(project_query)
+    query.update(time_query)
+    query.update(geo_query)
+    return query
 
 def run_queries(tests, match_fcn, process_fcn = None):
     # Test are 2-element lists of descriptions and range specs.
@@ -131,15 +155,18 @@ def process_loc_gettimes(matching):
 
     print "total commits matched: %i" % i
 
-#run_queries(time_ranges, time_match)
+# Benchmark suite for paper inclusion:
+run_queries(time_ranges, time_match, process_loc_str)
+#run_queries(geo_box_ranges, geo_split_box_match, process_loc_str)
+#run_queries(project_ranges, project_match, process_loc_str)
+#run_queries(combined_ranges, combined_match, process_loc_str)
+
 #run_queries(geo_box_ranges, geo_box_match)
 #run_queries(geo_circle_ranges, geo_circle_match)
 #run_queries(geo_circle_ranges, geo_near_match)
 
 #run_queries(geo_box_ranges, geo_box_match, process_loc_list)
 #run_queries(geo_box_ranges, geo_box_match, process_loc_gettimes)
-
-#run_queries(geo_box_ranges, geo_split_box_match, process_loc_str)
 
 #run_queries([['null', {}]], lambda x: x)
 #run_queries([['null', {}]], lambda x: x, process_loc_str)
