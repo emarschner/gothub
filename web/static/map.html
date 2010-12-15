@@ -190,7 +190,7 @@
          */
     </style>
     <script type="text/javascript">
-        var ZOOM = 2.8;
+        var ZOOM = 2.5;
         var LON_START = 25;
         var LAT_START = 10;
         var TOTAL_ANIM_TIME_MS = 20000;
@@ -268,7 +268,7 @@
         }
         DOT_STROKE_OPACITY = 0.5;
         
-        var HOST = 'http://localhost:8080';
+        var HOST = 'http://nfcm5.stanford.edu:9090';
 
         if (style == "original") {
             CLOUDMADE_MAP_ID = 998;
@@ -713,11 +713,12 @@
                 success: function(data, status)
                 {
                     masterData = data;
-                    $('#project_name').text(project);
-                    $('#searchbox').attr('value', project);
                     annotateMap();
-                    if (presentationMode)
+                    console.log(project);
+                    if (presentationMode && project)
                     {
+                        $('#project_name').text(project);
+                        $('#searchbox').attr('value', project);
                         animator.init();
                     }
 
