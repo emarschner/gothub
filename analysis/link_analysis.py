@@ -11,10 +11,17 @@ Error lines look like this:
 import json
 import time
 import logging
+import os
 import pylab
 import matplotlib.pyplot as plt
+import networkx as nx
+
+# Compute betweenness centrality?  Gets expensive...
+COMPUTE_BC = False
 
 filename = 'followers'
+
+ext = 'png'
 
 print_intervals = True
 
@@ -31,7 +38,7 @@ lg = logging.getLogger("analysis")
 lg.setLevel(level)
 
 
-graph = {}  # graph[src][dst] = 1 --> src follows dst
+g = nx.DiGraph()  # network graph
 seen = {}  # dict of user names to totals.  Mostly to verify no dupe usernames
 unique = set([])  # track unique usernames seen
 empty = set([])  # map of antisocial users: no followers/following
@@ -76,16 +83,11 @@ for l in f:
         else:
             raise Exception("duplicated line for src: %s" % src)
 
-        if src not in graph:
-            graph[src] = {}
-        else:
-            raise Exception("duplicated addition to graph variable")
-
         for dst in line[src]['users']:
             unique.add(dst)
             links += 1
-            graph[src][dst] = 1
-            if dst in graph and (src in graph[dst]):
+            g.add_edge(src, dst) # dst node added automatically
+            if dst in g and src in g[dst]:
                 bidir += 1
 
     if lines == limit:
@@ -98,7 +100,7 @@ duration = time.time() - start
 
 above = [user for user in seen.keys() if seen[user] >= threshold]
 
-print "time: %0.3f sec" % duration
+print "time to parse: %0.3f sec" % duration
 print "filename: ", filename
 print "lines: ", lines
 print "links: ", links
@@ -108,35 +110,60 @@ print "empty: ", len(empty)
 print "unique usernames seen: ", len(unique)
 print "valid lines added: ", len(seen)
 print "max: %i, at line %i" % (max, max_line)
-print "len(graph): ", len(graph)
 print "users w/ at least %i in list: %s" % (threshold, above) 
 
-total_users = len(graph)
-user_list = [(user, len(graph[user])) for user in graph.keys()]
-user_list = sorted(user_list, key=lambda x: x[1])
-points = [(user_list[i][1], float(i + 1) / total_users) for i in range(total_users)]
-#print points
-x = [point[0] for point in points]
-y = [point[1] for point in points]
+# create degree CDF
+degree = [seen[user] for user in seen.keys()]
 
+# compute PageRank.  Note: we have to ignore empties.
+start = time.time()
+pagerank_dict = nx.pagerank(g)
+nonempty_seen = [user for user in seen.keys() if user not in empty]
+pagerank = ([pagerank_dict[user] for user in nonempty_seen])
+duration = time.time() - start
+print "time to gen pagerank: %0.3f sec" % duration
+#print pagerank
 
-def plot(out_fname = None):
+# compute betweenness centrality  - should empties get added back to CDF?
+if COMPUTE_BC:
+    start = time.time()
+    bc_dict = nx.betweenness_centrality(g)
+    bc = ([bc_dict[user] for user in nonempty_seen])
+    duration = time.time() - start
+    print "time to gen betweenness centrality: %0.3f sec" % duration
 
+def gen_dirname():
+    return filename + '_' + str(lines)
+
+def gen_fname(name, insert):
+    return name + '_' + insert + '.' + ext
+
+def plot_cdf(x, color, axes, label, xscale, yscale, write = False):
     fig = pylab.figure()
-    l1 = pylab.plot(x, y, "b-")
+    y = [(float(i + 1) / len(x)) for i in range(len(x))]
+    l1 = pylab.plot(sorted(x), y, color)
     #l2 = pylab.plot(range(1,BINS), results_one_queue[6], "r--")
     #l3 = pylab.plot(range(1,BINS), results_two_queue[6], "g-.")
     pylab.grid(True)
-    pylab.xscale("linear")
-    pylab.axis([0, 100, 0, 1.0])
+    pylab.xscale(xscale)
+    pylab.yscale(yscale)
+    pylab.axis(axes)
     pylab.xlabel("total")
     pylab.ylabel("CDF")
-    pylab.title("Link degree")
+    pylab.title(label)
     #pylab.legend((l1,l2,l3), ("no congestion","one congestion point","two congestion points"),"lower right")
-    if out_fname:
-        fig.savefig(out_fname)
+    if write:
+        dirname = gen_dirname()
+        if dirname not in os.listdir('.'):
+            os.mkdir(dirname)
+        filepath = os.path.join(dirname, dirname + '_' + gen_fname(label, xscale + '_' + yscale))
+        fig.savefig(filepath)
     else:
         pylab.show()
 
-plot()
-#plot(filename + '.png')
+plot_cdf(degree, "b-", [0, 100, 0, 1.0], "Degree", "linear", "linear", True)
+plot_cdf(degree, "b-", [0, 10000, 0, 1.0], "Degree", "log", "linear", True)
+plot_cdf(pagerank, "r-", [0, sorted(pagerank)[-1], 0, 1.0], "PageRank", "linear", "linear", True)
+plot_cdf(pagerank, "r-", [10e-7, 10e-4, 0, 1.0], "PageRank", "log", "linear", True)
+#plot_cdf(bc, "r-", [0, sorted(bc)[-1], 0, 1.0], "BetweennessCentrality", "linear", "linear", True)
+#plot_cdf(bc, "r-", [10e-9, 10e-3, 0, 1.0], "BetweennessCentrality", "log", "linear", True)
