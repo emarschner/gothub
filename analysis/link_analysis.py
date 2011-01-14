@@ -11,6 +11,8 @@ Error lines look like this:
 import json
 import time
 import logging
+import pylab
+import matplotlib.pyplot as plt
 
 filename = 'followers'
 
@@ -18,7 +20,9 @@ print_intervals = True
 
 print_interval = 10000
 
-limit = 10000 # max lines to read
+limit = 100000 # max lines to read
+
+threshold = 500 # above this, note names
 
 level = logging.INFO
 
@@ -61,15 +65,25 @@ for l in f:
         raise Exception("line with src but no users array?")
     else:
         users = len(line[src]['users'])
-        seen[src] = users
         if users > max:
             max = users
             max_line = lines
+        if users == 0:
+            empty.add(src)
+
+        if src not in seen:
+            seen[src] = users
+        else:
+            raise Exception("duplicated line for src: %s" % src)
+
+        if src not in graph:
+            graph[src] = {}
+        else:
+            raise Exception("duplicated addition to graph variable")
+
         for dst in line[src]['users']:
             unique.add(dst)
             links += 1
-            if src not in graph:
-                graph[src] = {}
             graph[src][dst] = 1
             if dst in graph and (src in graph[dst]):
                 bidir += 1
@@ -80,8 +94,9 @@ for l in f:
         if lines % print_interval == 0:
             print lines
 
-
 duration = time.time() - start
+
+above = [user for user in seen.keys() if seen[user] >= threshold]
 
 print "time: %0.3f sec" % duration
 print "filename: ", filename
@@ -89,6 +104,39 @@ print "lines: ", lines
 print "links: ", links
 print "bidir: ", bidir
 print "errors: ", len(error)
+print "empty: ", len(empty)
 print "unique usernames seen: ", len(unique)
+print "valid lines added: ", len(seen)
 print "max: %i, at line %i" % (max, max_line)
+print "len(graph): ", len(graph)
+print "users w/ at least %i in list: %s" % (threshold, above) 
 
+total_users = len(graph)
+user_list = [(user, len(graph[user])) for user in graph.keys()]
+user_list = sorted(user_list, key=lambda x: x[1])
+points = [(user_list[i][1], float(i + 1) / total_users) for i in range(total_users)]
+#print points
+x = [point[0] for point in points]
+y = [point[1] for point in points]
+
+
+def plot(out_fname = None):
+
+    fig = pylab.figure()
+    l1 = pylab.plot(x, y, "b-")
+    #l2 = pylab.plot(range(1,BINS), results_one_queue[6], "r--")
+    #l3 = pylab.plot(range(1,BINS), results_two_queue[6], "g-.")
+    pylab.grid(True)
+    pylab.xscale("linear")
+    pylab.axis([0, 100, 0, 1.0])
+    pylab.xlabel("total")
+    pylab.ylabel("CDF")
+    pylab.title("Link degree")
+    #pylab.legend((l1,l2,l3), ("no congestion","one congestion point","two congestion points"),"lower right")
+    if out_fname:
+        fig.savefig(out_fname)
+    else:
+        pylab.show()
+
+plot()
+#plot(filename + '.png')
