@@ -27,7 +27,7 @@ print_intervals = True
 
 print_interval = 10000
 
-limit = 100000 # max lines to read
+limit = 1000 # max lines to read
 
 threshold = 500 # above this, note names
 
@@ -138,9 +138,14 @@ def gen_dirname():
 def gen_fname(name, insert):
     return name + '_' + insert + '.' + ext
 
-def plot_cdf(x, color, axes, label, xscale, yscale, write = False):
+def plot(ptype, x, color, axes, label, xscale, yscale, write = False):
     fig = pylab.figure()
-    y = [(float(i + 1) / len(x)) for i in range(len(x))]
+    if ptype == 'cdf':
+        y = [(float(i + 1) / len(x)) for i in range(len(x))]
+    elif ptype == 'ccdf':
+        y = [1.0 - (float(i + 1) / len(x)) for i in range(len(x))]
+    else:
+        raise Exception("invalid plot type")
     l1 = pylab.plot(sorted(x), y, color)
     #l2 = pylab.plot(range(1,BINS), results_one_queue[6], "r--")
     #l3 = pylab.plot(range(1,BINS), results_two_queue[6], "g-.")
@@ -149,21 +154,28 @@ def plot_cdf(x, color, axes, label, xscale, yscale, write = False):
     pylab.yscale(yscale)
     pylab.axis(axes)
     pylab.xlabel("total")
-    pylab.ylabel("CDF")
+    pylab.ylabel(ptype)
     pylab.title(label)
     #pylab.legend((l1,l2,l3), ("no congestion","one congestion point","two congestion points"),"lower right")
     if write:
         dirname = gen_dirname()
         if dirname not in os.listdir('.'):
             os.mkdir(dirname)
-        filepath = os.path.join(dirname, dirname + '_' + gen_fname(label, xscale + '_' + yscale))
+        filepath = os.path.join(dirname, dirname + '_' + gen_fname(label, xscale + '_' + yscale + '_' + ptype))
         fig.savefig(filepath)
     else:
         pylab.show()
 
-plot_cdf(degree, "b-", [0, 100, 0, 1.0], "Degree", "linear", "linear", True)
-plot_cdf(degree, "b-", [0, 10000, 0, 1.0], "Degree", "log", "linear", True)
-plot_cdf(pagerank, "r-", [0, sorted(pagerank)[-1], 0, 1.0], "PageRank", "linear", "linear", True)
-plot_cdf(pagerank, "r-", [10e-7, 10e-4, 0, 1.0], "PageRank", "log", "linear", True)
-#plot_cdf(bc, "r-", [0, sorted(bc)[-1], 0, 1.0], "BetweennessCentrality", "linear", "linear", True)
-#plot_cdf(bc, "r-", [10e-9, 10e-3, 0, 1.0], "BetweennessCentrality", "log", "linear", True)
+plot('cdf', degree, "b-", [0, 100, 0, 1.0], "Degree", "linear", "linear", True)
+plot('cdf', degree, "b-", [0, 10000, 0, 1.0], "Degree", "log", "linear", True)
+plot('ccdf', degree, "b-", [0, 100, 0, 1.0], "Degree", "linear", "linear", True)
+plot('ccdf', degree, "b-", [0, 10000, 0, 1.0], "Degree", "log", "log", True)
+plot('cdf', pagerank, "r-", [0, sorted(pagerank)[-1], 0, 1.0], "PageRank", "linear", "linear", True)
+plot('cdf', pagerank, "r-", [10e-7, 10e-4, 0, 1.0], "PageRank", "log", "linear", True)
+plot('ccdf', pagerank, "r-", [0, sorted(pagerank)[-1], 0, 1.0], "PageRank", "linear", "linear", True)
+plot('ccdf', pagerank, "r-", [10e-7, 10e-4, 0, 1.0], "PageRank", "log", "log", True)
+if COMPUTE_BC:
+    plot('cdf', bc, "r-", [0, sorted(bc)[-1], 0, 1.0], "BetweennessCentrality", "linear", "linear", True)
+    plot('cdf', bc, "r-", [10e-9, 10e-3, 0, 1.0], "BetweennessCentrality", "log", "linear", True)
+    plot('ccdf', bc, "r-", [0, sorted(bc)[-1], 0, 1.0], "BetweennessCentrality", "linear", "linear", True)
+    plot('ccdf', bc, "r-", [10e-9, 10e-3, 0, 1.0], "BetweennessCentrality", "log", "log", True)
