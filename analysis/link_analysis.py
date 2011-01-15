@@ -46,7 +46,7 @@ error = {}  # map of users for which the query returned an error
 lines = 0  # lines read in
 links = 0  # total links seen so far
 bidir = 0  # bidirectional links, counted once
-max = -1  # max links for one user
+max_links = -1  # max links for one user
 max_line = -1  # line number for tracking max value after
 
 start = time.time()
@@ -72,8 +72,8 @@ for l in f:
         raise Exception("line with src but no users array?")
     else:
         users = len(line[src]['users'])
-        if users > max:
-            max = users
+        if users > max_links:
+            max_links = users
             max_line = lines
         if users == 0:
             empty.add(src)
@@ -109,7 +109,7 @@ print "errors: ", len(error)
 print "empty: ", len(empty)
 print "unique usernames seen: ", len(unique)
 print "valid lines added: ", len(seen)
-print "max: %i, at line %i" % (max, max_line)
+print "max_links: %i, at line %i" % (max_links, max_line)
 print "users w/ at least %i in list: %s" % (threshold, above) 
 
 # create degree CDF
@@ -138,22 +138,54 @@ def gen_dirname():
 def gen_fname(name, insert):
     return name + '_' + insert + '.' + ext
 
-def plot(ptype, x, color, axes, label, xscale, yscale, write = False):
+def plot(ptype, data, color, axes, label, xscale, yscale, write = False, num_bins = None):
     fig = pylab.figure()
     if ptype == 'cdf':
+        x = sorted(data)
         y = [(float(i + 1) / len(x)) for i in range(len(x))]
     elif ptype == 'ccdf':
+        x = sorted(data)
         y = [1.0 - (float(i + 1) / len(x)) for i in range(len(x))]
+    elif ptype == 'pdf':
+        # bin data by value
+        hist = {}
+        data_max = max(data)
+        # use all bins if our data is integers
+        if data_max == int(data_max):
+            num_bins = data_max
+        else:
+            num_bins = 1000
+        for d in data:
+            bin = int((float(d) * num_bins) / float(data_max))
+            if bin not in hist:
+                hist[bin] = 1
+            else:
+                hist[bin] += 1
+
+        x = []
+        y = []
+        for i in range(num_bins + 1):
+            range_lo = float(i) / float(num_bins) * data_max
+            range_hi = float(i + 1) / float(num_bins) * data_max
+            y_val = (float(hist[i]) / len(data)) if i in hist else 0
+            x.append(range_lo)
+            y.append(y_val)
+
+            x.append(range_hi)
+            y.append(y_val)
+
+        # scale max Y
+        axes[3] = float(max(hist.values())) / len(data)
     else:
         raise Exception("invalid plot type")
-    l1 = pylab.plot(sorted(x), y, color)
+    l1 = pylab.plot(x, y, color)
     #l2 = pylab.plot(range(1,BINS), results_one_queue[6], "r--")
     #l3 = pylab.plot(range(1,BINS), results_two_queue[6], "g-.")
     pylab.grid(True)
     pylab.xscale(xscale)
     pylab.yscale(yscale)
     pylab.axis(axes)
-    pylab.xlabel("total")
+    pylab.xlabel("value")
     pylab.ylabel(ptype)
     pylab.title(label)
     #pylab.legend((l1,l2,l3), ("no congestion","one congestion point","two congestion points"),"lower right")
@@ -170,12 +202,18 @@ plot('cdf', degree, "b-", [0, 100, 0, 1.0], "Degree", "linear", "linear", True)
 plot('cdf', degree, "b-", [0, 10000, 0, 1.0], "Degree", "log", "linear", True)
 plot('ccdf', degree, "b-", [0, 100, 0, 1.0], "Degree", "linear", "linear", True)
 plot('ccdf', degree, "b-", [0, 10000, 0, 1.0], "Degree", "log", "log", True)
+plot('pdf', degree, "b-", [0, 100, 0, 1.0], "Degree", "linear", "linear", True)
+plot('pdf', degree, "b-", [0, 10000, 0, 1.0], "Degree", "log", "linear", True)
+
 plot('cdf', pagerank, "r-", [0, sorted(pagerank)[-1], 0, 1.0], "PageRank", "linear", "linear", True)
 plot('cdf', pagerank, "r-", [10e-7, 10e-4, 0, 1.0], "PageRank", "log", "linear", True)
 plot('ccdf', pagerank, "r-", [0, sorted(pagerank)[-1], 0, 1.0], "PageRank", "linear", "linear", True)
 plot('ccdf', pagerank, "r-", [10e-7, 10e-4, 0, 1.0], "PageRank", "log", "log", True)
+plot('pdf', pagerank, "r-", [10e-7, 10e-4, 0, 1.0], "PageRank", "linear", "linear", True)
+
 if COMPUTE_BC:
     plot('cdf', bc, "r-", [0, sorted(bc)[-1], 0, 1.0], "BetweennessCentrality", "linear", "linear", True)
     plot('cdf', bc, "r-", [10e-9, 10e-3, 0, 1.0], "BetweennessCentrality", "log", "linear", True)
     plot('ccdf', bc, "r-", [0, sorted(bc)[-1], 0, 1.0], "BetweennessCentrality", "linear", "linear", True)
     plot('ccdf', bc, "r-", [10e-9, 10e-3, 0, 1.0], "BetweennessCentrality", "log", "log", True)
+    plot('pdf', bc, "r-", [10e-9, 10e-3, 0, 1.0], "BetweennessCentrality", "linear", "linear", True)
