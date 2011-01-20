@@ -24,7 +24,7 @@ def import_graph(filename, limit = None, graph_type = "dir", threshold = 500,
     threshold: above this limit, note names
     print_interval: optional line spacing to print line number
 
-    returns a NetworkX graph object.
+    returns a NetworkX graph object and other vars used
     '''
     if graph_type == "dir":
         g = nx.DiGraph()
@@ -104,4 +104,4 @@ def import_graph(filename, limit = None, graph_type = "dir", threshold = 500,
     print "max_links: %i, at line %i" % (max_links, max_line)
     print "users w/ at least %i in list: %s" % (threshold, above)
 
-    return g
+    return g, seen, empty

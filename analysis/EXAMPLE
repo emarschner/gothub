@@ -1,0 +1,5 @@
+To generate a stat, then view it (assuming followers is a local file):
+
+./graph_util.py --write_stats -m 999 --degree
+./plot.py -i followers_999 --write
+
