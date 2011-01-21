@@ -101,6 +101,26 @@ function are_watched_done() {
   echo false
 }
 
+function are_followers_done() {
+  if [ -n "$1" ]
+  then
+    mkdir -p "${RUN_DIR}/log/user" &> /dev/null
+    touch "${RUN_DIR}/log/user/followers"
+    [ `grep -c -m 1 "^[0-9][0-9]*  *${1}$" "${RUN_DIR}/log/user/followers"` -gt 0 ] && echo true && return
+  fi
+  echo false
+}
+
+function are_following_done() {
+  if [ -n "$1" ]
+  then
+    mkdir -p "${RUN_DIR}/log/user" &> /dev/null
+    touch "${RUN_DIR}/log/user/following"
+    [ `grep -c -m 1 "^[0-9][0-9]*  *${1}$" "${RUN_DIR}/log/user/following"` -gt 0 ] && echo true && return
+  fi
+  echo false
+}
+
 # Usage: are_commits_done <[repo-owner]/[repo-name]/[branch-name]> => true or false
 function are_commits_done() {
   if [ -n "$1" ]
@@ -128,6 +148,16 @@ function set_commits_done() {
 function set_watched_done() {
   mkdir -p "${RUN_DIR}/log/repos" &> /dev/null
   echo "`date +%s` $1" >> "${RUN_DIR}/log/repos/watched"
+}
+
+function set_followers_done() {
+  mkdir -p "${RUN_DIR}/log/user" &> /dev/null
+  echo "`date +%s` $1" >> "${RUN_DIR}/log/user/followers"
+}
+
+function set_following_done() {
+  mkdir -p "${RUN_DIR}/log/user" &> /dev/null
+  echo "`date +%s` $1" >> "${RUN_DIR}/log/user/following"
 }
 
 # Usage: set_user_geocoded <username> => void
@@ -214,6 +244,14 @@ function branch_commits_api_path() {
 # Usage: watched_repos_path <username> => <github api path for 'username's watched repos>
 function watched_repos_path() {
   echo "repos/watched/${1}"
+}
+
+function followers_path() {
+  echo "user/show/${1}/followers"
+}
+
+function following_path() {
+  echo "user/show/${1}/following"
 }
 
 # Usage: store_user_search <user search api path> => void
@@ -389,6 +427,51 @@ function parse_watched_repos() {
   else
     echo "Already got repos watched by: $username (skipping)" >&2
   fi
+}
+
+function parse_followers() {
+  username=`basename $(dirname "$1")`
+  if ! `are_followers_done "$username"` && [ -s "${RUN_DIR}/raw/${1}" ]
+  then
+    store_followers_data "$1"
+    [ -n "$username" ] && set_followers_done "$username"
+  else
+    echo "Already got followers for: $username (skipping)" >&2
+  fi
+}
+
+function store_followers_data() {
+  username=`basename $(dirname "$1")`
+  if [ -e "${RUN_DIR}/raw/${1}" ]
+  then
+    mkdir -p "${RUN_DIR}/raw/full" &> /dev/null
+    echo "{ \"${username}\": `cat "${RUN_DIR}/raw/${1}" | ruby to_single_line.rb` }" >> "${RUN_DIR}/raw/full/followers"
+    rm "${RUN_DIR}/raw/${1}"
+    [ $? -ne 0 ] && return 1
+  fi
+  return 0
+}
+
+function parse_following() {
+  username=`basename $(dirname "$1")`
+  if ! `are_following_done "$username"` && [ -s "${RUN_DIR}/raw/${1}" ]
+  then
+    store_following_data "$1"
+    [ -n "$username" ] && set_following_done "$username"
+  else
+    echo "Already got following for: $username (skipping)" >&2
+  fi
+}
+
+function store_following_data() {
+  if [ -e "${RUN_DIR}/raw/${1}" ]
+  then
+    mkdir -p "${RUN_DIR}/raw/full" &> /dev/null
+    echo "{ \"${username}\": `cat "${RUN_DIR}/raw/${1}" | ruby to_single_line.rb` }" >> "${RUN_DIR}/raw/full/following"
+    rm "${RUN_DIR}/raw/${1}"
+    [ $? -ne 0 ] && return 1
+  fi
+  return 0
 }
 
 # Usage: parse_geocode_data <username> => void

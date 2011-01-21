@@ -69,6 +69,24 @@ function usernames2repos() {
   done
 }
 
+function usernames2followers() {
+  all_seen_users | while read username
+  do
+    followers_path="`followers_path "$username"`"
+    ! `are_followers_done "$username"` && grab_github_data "$followers_path"
+    parse_followers "$followers_path"
+  done
+}
+
+function usernames2following() {
+  all_seen_users | while read username
+  do
+    following_path="`following_path "$username"`"
+    ! `are_following_done "$username"` && grab_github_data "$following_path"
+    parse_following "$following_path"
+  done
+}
+
 # Fetches: [GITHUB API]/user/search/{username}
 # Processing:
 #   usernames => log/user/seen
