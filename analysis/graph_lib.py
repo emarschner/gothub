@@ -149,3 +149,57 @@ def import_graph(filename, limit = None, graph_type = "dir",
     print "top users' degrees: %s" % top
 
     return g, seen, empty
+
+def jaccard_edges(left, right):
+    '''Compute Jaccard coefficient on the edges of two NetworkX graphs.
+
+    The Jaccard coefficient represents the degree of similarity between two
+    graphs, as the intersection over the union.
+
+    More at http://en.wikipedia.org/wiki/Jaccard_index
+    '''
+    if left.number_of_edges() == 0 and right.number_of_edges() == 0:
+        raise Exception("Jaccard undefined for empty inputs?")
+
+    # For now, assume we're comparing two directed graphs.
+    both = 0
+    left_only = 0
+    right_only = 0
+    for src, dst in left.edges_iter():
+        if right.has_edge(src, dst):
+            both += 1
+        else:
+            left_only += 1
+    for src, dst in right.edges_iter():
+        if left.has_edge(src, dst):
+            both += 1
+        else:
+            right_only += 1
+    # Adjust for double-counting of common edges
+    both /= 2
+    return float(both) / (both + left_only + right_only)
+
+def jaccard_nodes(left, right):
+    '''Compute Jaccard coefficient on the nodes of two NetworkX graphs.
+
+    See jaccard_edges above for more detail.
+    '''
+    if left.number_of_nodes() == 0 and right.number_of_nodes() == 0:
+        raise Exception("Jaccard undefined for empty inputs?")
+
+    both = 0
+    left_only = 0
+    right_only = 0
+    for node in left.nodes_iter():
+        if right.has_node(node):
+            both += 1
+        else:
+            left_only += 1
+    for node in right.nodes_iter():
+        if left.has_node(node):
+            both += 1
+        else:
+            right_only += 1
+    # Adjust for double-counting of common edges
+    both /= 2
+    return float(both) / (both + left_only + right_only)
