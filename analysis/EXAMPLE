@@ -1,0 +1,13 @@
+To generate a stat, then view it (assuming followers is a local file):
+
+./graph_util.py --write_stats -m 999 --degree
+./plot.py -i followers_999 --write
+
+Using a file w/ CSV links:
+./graph_util.py --input_type links \
+    --input "../../stanford-geo-viz/followers.csv" \
+    --write \
+    -m 0 --print_interval 1000000 \
+    --degree --pagerank \
+    --write_stats
+./plot.py -i followers --write
