@@ -3,16 +3,20 @@
 #
 # Import a graph, given a few params.
 
-from graph_lib import import_graph
+from graph_lib import import_graph, INPUT_TYPES
 import json
 from optparse import OptionParser
 import os
+import time
 
 import networkx as nx
 
 
 # Name of input file
 DEF_INPUT_NAME = 'followers'
+
+# Input type
+DEF_INPUT_TYPE = 'original'
 
 # Name of output file
 DEF_OUTPUT_NAME = None
@@ -35,6 +39,9 @@ DEF_WRITE = False
 # Create plots?
 DEF_PLOT = False
 
+# Assume that we have partial data when computing stats?
+DEF_PARTIAL = False
+
 
 class GraphUtil():
     
@@ -44,16 +51,18 @@ class GraphUtil():
         if '.gpk' in options.input:
             g = nx.read_gpickle(options.input)
         else:
+            print "options.input: %s" % options.input
             g, seen, empty = import_graph(options.input,
                 limit = options.max_lines,
-                print_interval = options.print_interval)
+                print_interval = options.print_interval,
+                input_type = options.input_type)
             self.seen = seen
             self.empty = empty
 
         if options.output:
             output_base = options.output
         else:
-            output_base = options.input.split('.')[0]
+            output_base = os.path.basename(options.input).split('.')[0]
         if options.max_lines:
             output_base += "_%i" % options.max_lines
 
@@ -66,6 +75,7 @@ class GraphUtil():
         if options.write:
             gpk_path = os.path.join(output_base, output_base + '.gpk')
             nx.write_gpickle(g, gpk_path)
+            print "wrote gpickle file:", gpk_path
 
         if options.stats:
             stats = self.stats(g, options.degree, options.pagerank,
@@ -74,7 +84,7 @@ class GraphUtil():
                 stats_path = os.path.join(output_base, output_base + '.stats')
                 f = open(stats_path, 'w')
                 f.write(json.dumps(stats))
-                print "wrote output file:", stats_path
+                print "wrote stats file:", stats_path
 
     def parse_args(self):
         opts = OptionParser()
@@ -113,6 +123,12 @@ class GraphUtil():
                         default = False, help = "compute all?")
         opts.add_option("--write_stats",  action = "store_true",
                         default = False, help = "write stats file?")
+        opts.add_option('--input_type', type='choice', choices = INPUT_TYPES,
+                        default = DEF_INPUT_TYPE,
+                        help='one of [' + ', '.join(INPUT_TYPES) + ']')
+        opts.add_option("--partial",  action = "store_true",
+                        default = DEF_PARTIAL,
+                        help = "assume partial data for stats?")
         options, arguments = opts.parse_args()
         self.options = options
 
@@ -136,13 +152,22 @@ class GraphUtil():
 
     def stats(self, g, degree, pagerank, bc):
         """Compute the requested stats and return as a dict."""
+        options = self.options
         stats = {}
         seen = self.seen
         empty = self.empty
-        
+        nonempty_seen = [user for user in seen.keys() if user not in empty]
+
         # create degree CDF
         if degree:
-            degree = [seen[user] for user in seen.keys()]
+            if options.partial:
+                # The way below for computing degree only considers those for which
+                # we have all the data.
+                degree = [seen[user] for user in seen.keys()]
+            else:
+                # The method below considers all nodes, including those for which 
+                # we may not have all the data.  Use w/caution on partial data sets.
+                degree = nx.degree(g).values()
             stats["degree"] = {
                 "type": "array",
                 "values": degree
@@ -151,9 +176,13 @@ class GraphUtil():
         # compute PageRank.  Note: we have to ignore empties.
         if pagerank:
             start = time.time()
-            pagerank_dict = nx.pagerank(g)
-            nonempty_seen = [user for user in seen.keys() if user not in empty]
-            pagerank = ([pagerank_dict[user] for user in nonempty_seen])
+            if options.partial:
+                pagerank_dict = nx.pagerank(g)
+                nonempty_seen = [user for user in seen.keys() if user not in empty]
+                pagerank = ([pagerank_dict[user] for user in nonempty_seen])
+            else:
+                # Assumption: no isolated nodes
+                pagerank = nx.pagerank(g).values()
             duration = time.time() - start
             print "time to gen pagerank: %0.3f sec" % duration
             #print pagerank
@@ -166,7 +195,10 @@ class GraphUtil():
         if bc:
             start = time.time()
             bc_dict = nx.betweenness_centrality(g)
-            bc = ([bc_dict[user] for user in nonempty_seen])
+            if options.partial:
+                bc = ([bc_dict[user] for user in nonempty_seen])
+            else:
+                bc = bc_dict.values()
             duration = time.time() - start
             print "time to gen betweenness centrality: %0.3f sec" % duration
             stats["bc"] = {

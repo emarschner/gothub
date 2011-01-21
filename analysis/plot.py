@@ -127,7 +127,7 @@ class Plot():
             self.plot('cdf', pagerank, "r-", [0, sorted(pagerank)[-1], 0, 1.0], "PageRank", "linear", "linear", True)
             self.plot('cdf', pagerank, "r-", [10e-7, 10e-4, 0, 1.0], "PageRank", "log", "linear", True)
             self.plot('ccdf', pagerank, "r-", [0, sorted(pagerank)[-1], 0, 1.0], "PageRank", "linear", "linear", True)
-            self.plot('ccdf', pagerank, "r-", [10e-7, 10e-4, 0, 1.0], "PageRank", "log", "log", True)
+            self.plot('ccdf', pagerank, "r-", [10e-7, 10e-3, 0, 1.0], "PageRank", "log", "log", True)
             self.plot('pdf', pagerank, "r-", [10e-7, 10e-4, 0, 1.0], "PageRank", "linear", "linear", True)
 
         if "bc" in stats:
