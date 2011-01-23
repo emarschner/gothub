@@ -11,3 +11,13 @@ Using a file w/ CSV links:
     --degree --pagerank \
     --write_stats
 ./plot.py -i followers --write
+
+Generating repos_contributors plots:
+./contributor_analysis.py
+mv repos_contributors.gpk repos_contributors_all.gpk
+./graph_util.py \
+    --input repos_contributors_all.gpk \
+    --degree \
+    --write_stats \
+    -m 0
+./plot.py -i repos_contributors_all --write

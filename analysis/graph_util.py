@@ -154,9 +154,10 @@ class GraphUtil():
         """Compute the requested stats and return as a dict."""
         options = self.options
         stats = {}
-        seen = self.seen
-        empty = self.empty
-        nonempty_seen = [user for user in seen.keys() if user not in empty]
+        if options.partial:
+            seen = self.seen
+            empty = self.empty
+            nonempty_seen = [user for user in seen.keys() if user not in empty]
 
         # create degree CDF
         if degree:

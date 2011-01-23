@@ -93,3 +93,11 @@ print "unique usernames seen: ", len(unique_users)
 print "valid lines added: ", len(seen_repos)
 print "max_links: %i, at line %i" % (max_links, max_line)
 print "repos w/ at least %i in list: %s" % (threshold, above) 
+
+# Temporary, to generate output pickle file for further analysis.
+# This whole file should get merged into graph_lib somehow.
+outpath = filename
+if limit:
+    outpath += '_' + str(limit)
+outpath += '.gpk'
+nx.write_gpickle(g, outpath)
