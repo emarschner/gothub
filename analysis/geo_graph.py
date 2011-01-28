@@ -10,6 +10,7 @@
 #   location: array of locations
 # edges have these fields:
 #   weight: float
+import json
 from operator import itemgetter
 import os
 
@@ -145,7 +146,7 @@ def geo_city_graph(g, cities = CITIES):
     return (c, edge_weight_total, edge_weights)
 
 
-def geo_city_stats(g, sep = SEP, ordering = CITY_NAMES_STARTER):
+def geo_city_stats(g, sep = SEP, ordering = CITY_NAMES_DIST):
 
     (c, edge_weight_total, edge_weights) = geo_city_graph(g)
     s = ''
@@ -153,6 +154,44 @@ def geo_city_stats(g, sep = SEP, ordering = CITY_NAMES_STARTER):
     s += sep + "total edge weight: %s\n" % edge_weight_total
     s += sep + "edge weights: %s\n" % sorted(edge_weights)
     s += '\n' + text_matrix(c, ordering, "weight")
+
+    return s
+
+
+def geo_pv_json(g, ordering = CITY_NAMES_DIST):
+    '''Make JSON string suitable for use in Protovis matrix view.
+
+    The data looks like this:
+
+    var data = {
+        nodes:[
+            {nodeName:"Myriel", group:1},
+            {nodeName:"Napoleon", group:1},
+            ...
+        ],
+        links:[
+            {source:1, target:0, value:1},
+            {source:2, target:0, value:8},
+            ...
+        ]
+    };
+    '''
+    c = geo_city_graph(g)[0]
+    nodes = [{'nodeName': name, 'group': 1} for name in ordering]
+    name_indices = {}
+    for i, name in enumerate(ordering):
+        name_indices[name] = i
+    links = []
+    for src in ordering:
+        for dst in ordering:
+            src_index = name_indices[src]
+            dst_index = name_indices[dst]
+            links.append({'source': src_index,
+                          'target': dst_index,
+                          'value': c[src][dst]["weight"]
+            })
+    matrix_data = { 'nodes': nodes, 'links': links}
+    s = 'var data = ' + json.dumps(matrix_data)
 
     return s
 
@@ -263,7 +302,7 @@ def geo_cluster(g, restrict = True, cities = CITIES):
 
     '''
     # Find/print the top N geo locations
-    n = 100
+    n = 20
     data = []  # Array of ((lat, long), names, [location]) tuples
     filtered_users = 0
     filtered_locations = []
@@ -361,11 +400,19 @@ def geo_node_stats(g):
         i += 1
 
 
+CITY_ORDERINGS = {'starter': CITY_NAMES_STARTER,
+                  'dist': CITY_NAMES_DIST
+}
+
 class GeoGraphProcessor:
     '''Helper for import/process/export on geo-graphs.'''
 
     def __init__(self, process_fcn, in_name, in_ext, out_name = None,
-                 out_ext = None, write = False):
+                 out_ext = None, write = False, write_json = False,
+                 ordering_type = 'starter'):
+
+        if ordering_type not in CITY_ORDERINGS:
+            raise Exception("invalid city ordering type: %s" % ordering_type)
 
         input_path = os.path.join(in_name, in_name + in_ext)
         g = nx.read_gpickle(input_path)
@@ -377,3 +424,14 @@ class GeoGraphProcessor:
         if write:
             geo_path = os.path.join(in_name, in_name + out_ext)
             nx.write_gpickle(r, geo_path)
+
+        if write_json:
+            print "using ordering: %s" % ordering_type
+            ordering = CITY_ORDERINGS[ordering_type]
+            print "ordering is: %s" % ordering
+            #print "city_names_starter: %s" % CITY_NAMES_STARTER
+            city_stats = geo_city_stats(g, ordering = ordering)
+            print "city_stats: %s" % city_stats
+            json_path = os.path.join(in_name, in_name + '_' + ordering_type + '.js')
+            json_out = open(json_path, 'w')
+            json_out.write(geo_pv_json(g, ordering))
