@@ -116,7 +116,10 @@ class GeoImport:
         dst_key = self.get_node_key(dst_data)
 
         if src_key == dst_key:
-            self.r.node[src_key]["selfedges"] += 1
+            #print "not incrementing selfedges for src/dst pair"
+            pass
+            #assume that the weight field can handle this
+            #self.r.node[src_key]["selfedges"] += 1
 
         if not self.r.has_edge(src_key, dst_key):
             self.r.add_edge(src_key, dst_key)
