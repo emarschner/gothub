@@ -446,6 +446,13 @@ CITY_ORDERINGS = {'starter': CITY_NAMES_STARTER,
                   'dist': CITY_NAMES_DIST
 }
 
+
+def write_json_file(text, name, append, ext = '.js'):
+    json_path = os.path.join(name, name + '_' + '_'.join(append) + ext)
+    json_out = open(json_path, 'w')
+    json_out.write(text)
+
+
 class GeoGraphProcessor:
     '''Helper for import/process/export on geo-graphs.'''
 
@@ -474,12 +481,11 @@ class GeoGraphProcessor:
             #print "city_names_starter: %s" % CITY_NAMES_STARTER
             city_stats = geo_city_stats(r, ordering = ordering)
             print "city_stats: %s" % city_stats
-            json_path = os.path.join(in_name, in_name + '_' + ordering_type + '.js')
-            json_out = open(json_path, 'w')
-            c = geo_city_graph(r)[0]
-            json_out.write(geo_pv_json(c, ordering))
 
-            json_path = os.path.join(in_name, in_name + '_asym_' + ordering_type + '.js')
-            json_out = open(json_path, 'w')
+            c = geo_city_graph(r)[0]
+            text = geo_pv_json(c, ordering)
+            write_json_file(text, in_name, [ordering_type])
+
             a = link_asym(g)
-            json_out.write(geo_pv_json(a, ordering))
+            text = geo_pv_json(a, ordering)
+            write_json_file(text, in_name, ["asym", ordering_type])
