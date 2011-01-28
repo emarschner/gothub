@@ -18,6 +18,8 @@ import geo
 METERS_TO_MILES = 0.000621371192
 # print geo.distance(portland, sanfran) * METERS_TO_MILES
 
+from geo_graph import geo_stats
+
 # Default input filename - .gpk extension assumed
 DEF_INPUT = "followers"
 
@@ -71,9 +73,14 @@ class TopGeo:
         self.r = nx.DiGraph()
 
         print "now processing"
+        input_stats = geo_stats(self.g)
         self.sort(self.g)
         self.reduce()
-        self.stats(self.g)
+        output_stats = geo_stats(self.g)
+
+        print "input stats: \n" + input_stats
+        print "output stats: \n" + output_stats
+        #self.stats(self.g)
 
         if options.write:
             geo_path = os.path.join(input, input + '.g2')
@@ -159,7 +166,7 @@ class TopGeo:
                 if in_range(node, city_loc, radius):
                     if city_loc not in city_data:
                         city_data[city_loc] = {'total': 0, 'name': city_name}
-                    print "%s @%s covers %s @ %s\n" % (city_name, city_loc, node, location)
+                    #print "%s @%s covers %s @ %s\n" % (city_name, city_loc, node, location)
                     city_data[city_loc]['total'] += names
                     edge_map[node] = city_loc
                     found = True
@@ -182,14 +189,6 @@ class TopGeo:
         pass
 
     def stats(self, g):
-        i = 0
-        print "stats for reduced graph:"
-        print "\tnodes: %i" % g.number_of_nodes()
-        print "\tedges: %i" % g.number_of_edges()
-        total_edge_weight = 0
-        for src, dst in g.edges():
-            total_edge_weight += g[src][dst]["weight"]
-        print "\tedge weight total: %i" % total_edge_weight
         if self.options.verbose:
             for node in g:
                 print "node %i: %s" % (i, node)
@@ -204,7 +203,6 @@ class TopGeo:
                 print "\tout_degree: %i" % len(g.neighbors(node))
                 print "\tin_degree: %i" % len(g.predecessors(node))
                 i += 1
-
 
 
 if __name__ == "__main__":
