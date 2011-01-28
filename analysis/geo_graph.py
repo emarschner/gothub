@@ -48,6 +48,7 @@ def geo_stats(g, sep = "\t"):
     s += sep + "node weight: %0.2f\n" % node_weight
     s += sep + "edge weight: %0.2f\n" % edge_weight
     s += sep + "selfedges: %i\n" % selfedges
+    s += sep + "total edge weight: %i\n" % (edge_weight + selfedges)
     s += sep + "locations: %i\n" % locations
 
     return s
@@ -153,6 +154,21 @@ def geo_filter_nones(g):
         g.remove_node((None, None))
 
 
+def print_top_n(data, n, m):
+    '''Print top n locations by user total, with up to m location names.
+
+    data: array of ((lat, long), names, [location]) tuples
+    '''
+    top = []
+    for i in range(min(n, len(data))):
+        top.append(data[i])
+        locs = list(data[i][2])
+        loc_strs = []
+        for j in range(min(m, len(locs))):
+            loc_strs.append(locs[j])
+        print data[i][0], data[i][1], loc_strs
+
+
 def geo_cluster(g, restrict = True):
     '''Cluster nodes via curated city descriptions.
 
@@ -182,15 +198,9 @@ def geo_cluster(g, restrict = True):
         data = sorted(data, key = itemgetter(1), reverse = True)
     except IndexError:
         print e
-    top = []
+
     # Print out data as a sanity check.
-    for i in range(min(n, len(data))):
-        top.append(data[i])
-        locs = list(data[i][2])
-        loc_strs = []
-        for j in range(min(5, len(locs))):
-            loc_strs.append(locs[j])
-        print data[i][0], data[i][1], loc_strs
+    print_top_n(data, n, 5)
 
     print "stats for filtered graph:"
     print "\tunique geo-locations: %i" % g.number_of_nodes()
