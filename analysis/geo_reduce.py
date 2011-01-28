@@ -3,38 +3,17 @@
 #
 # Given an input geo-graph from geo_reduce.py, cluster nodes.
 from optparse import OptionParser
-import os
-import time
 
 import networkx as nx
 
 from geo_graph import geo_stats, geo_cluster, geo_reduce, geo_filter_nones
+from geo_graph import GeoGraphProcessor
 
 # Default input filename - .gpk extension assumed
 DEF_INPUT = "followers"
 
 # Write output file by default?
 DEF_WRITE = True
-
-
-class GeoGraphProcessor:
-
-    def __init__(self, process_fcn, in_name, in_ext, out_name = None,
-                 out_ext = None, write = False):
-
-        # Input graph
-        input_path = os.path.join(in_name, in_name + '.grg')
-        # Nodes: (lat, long) tuples w/ list of associated users & location strings
-        # Edges: weight: number of links in this direction
-        g = nx.read_gpickle(input_path)
-        if not g:
-            raise Exception("null input file for input path %s" % input_path)
-
-        r = process_fcn(g)
-
-        if write:
-            geo_path = os.path.join(in_name, in_name + '.g2')
-            nx.write_gpickle(r, geo_path)
 
 
 class GeoReduce:

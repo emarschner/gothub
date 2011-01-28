@@ -11,6 +11,7 @@
 # edges have these fields:
 #   weight: float
 from operator import itemgetter
+import os
 
 import networkx as nx
 
@@ -246,3 +247,21 @@ def geo_node_stats(g):
         print "\tout_degree: %i" % len(g.neighbors(node))
         print "\tin_degree: %i" % len(g.predecessors(node))
         i += 1
+
+
+class GeoGraphProcessor:
+    '''Helper for import/process/export on geo-graphs.'''
+
+    def __init__(self, process_fcn, in_name, in_ext, out_name = None,
+                 out_ext = None, write = False):
+
+        input_path = os.path.join(in_name, in_name + in_ext)
+        g = nx.read_gpickle(input_path)
+        if not g:
+            raise Exception("null input file for input path %s" % input_path)
+
+        r = process_fcn(g)
+
+        if write:
+            geo_path = os.path.join(in_name, in_name + out_ext)
+            nx.write_gpickle(r, geo_path)
