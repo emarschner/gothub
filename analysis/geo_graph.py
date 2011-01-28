@@ -111,14 +111,14 @@ def pad(input, width):
     return line[0:width]
 
 
-def text_matrix(g, labels, param, width = 6):
+def text_matrix(g, labels, param, width = 6, format = "%i"):
     s = ''
     s += '|'.join([pad('', width)] + [pad(label, width) for label in labels]) + '\n'
     s += '|'.join(["------" for i in range(len(labels) + 1)]) + '\n'
     for src_name in labels:
         values = [src_name]
         for dst_name in labels:
-            values.append(("%" + str(width) + "i") % g[src_name][dst_name][param])
+            values.append(pad(format % g[src_name][dst_name][param], width))
         s += '|'.join([pad(value, width) for value in values]) + '\n'
     return s
 
@@ -153,12 +153,15 @@ def geo_city_stats(g, sep = SEP, ordering = CITY_NAMES_DIST):
     print edge_weight_total
     s += sep + "total edge weight: %s\n" % edge_weight_total
     s += sep + "edge weights: %s\n" % sorted(edge_weights)
-    s += '\n' + text_matrix(c, ordering, "weight")
+    s += '\nLinks:\n' + text_matrix(c, ordering, "weight")
+
+    a = link_asym(g)
+    s += '\nAsym:\n' + text_matrix(a, ordering, "weight", format = "%0.2f")
 
     return s
 
 
-def geo_pv_json(g, ordering = CITY_NAMES_DIST):
+def geo_pv_json(c, ordering = CITY_NAMES_DIST):
     '''Make JSON string suitable for use in Protovis matrix view.
 
     The data looks like this:
@@ -176,7 +179,6 @@ def geo_pv_json(g, ordering = CITY_NAMES_DIST):
         ]
     };
     '''
-    c = geo_city_graph(g)[0]
     nodes = [{'nodeName': name, 'group': 1} for name in ordering]
     name_indices = {}
     for i, name in enumerate(ordering):
@@ -194,6 +196,46 @@ def geo_pv_json(g, ordering = CITY_NAMES_DIST):
     s = 'var data = ' + json.dumps(matrix_data)
 
     return s
+
+
+# Ratio to use in place of None or divide-by-zero error.
+RATIO_MAX = 1000
+RATIO_INDETERMINATE = 1.0
+
+def link_asym(g, cities = CITIES):
+    '''Returns matrix of link asymmetry ratios.
+
+    For link (a, b), the ratio equals (a / b)
+
+    g: geo-graph
+    cities: array like CITIES
+
+    return a DiGraph w/city names for nodes
+    '''
+    a = nx.DiGraph()
+    for src_node, src_name, src_radius in cities:
+        for dst_node, dst_name, dst_radius  in cities:
+            if g.has_edge(src_node, dst_node):
+                forward = g[src_node][dst_node]["weight"]
+            else:
+                forward = 0
+
+            if g.has_edge(dst_node, src_node):
+                backward = g[dst_node][src_node]["weight"]
+            else:
+                backward = 0
+
+            if backward == 0 and forward == 0:
+                ratio = RATIO_INDETERMINATE
+            elif backward == 0:
+                ratio = RATIO_MAX
+            else:
+                ratio = float(forward) / float(backward)
+
+            a.add_edge(src_name, dst_name)
+            a[src_name][dst_name]["weight"] = ratio
+
+    return a
 
 
 def valid(node, location):
@@ -434,4 +476,10 @@ class GeoGraphProcessor:
             print "city_stats: %s" % city_stats
             json_path = os.path.join(in_name, in_name + '_' + ordering_type + '.js')
             json_out = open(json_path, 'w')
-            json_out.write(geo_pv_json(r, ordering))
+            c = geo_city_graph(r)[0]
+            json_out.write(geo_pv_json(c, ordering))
+
+            json_path = os.path.join(in_name, in_name + '_asym_' + ordering_type + '.js')
+            json_out = open(json_path, 'w')
+            a = link_asym(g)
+            json_out.write(geo_pv_json(a, ordering))
