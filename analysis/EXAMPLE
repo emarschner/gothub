@@ -22,7 +22,15 @@ mv repos_contributors.gpk repos_contributors_all.gpk
     -m 0
 ./plot.py -i repos_contributors_all --write
 
-Creating a small social graph, geocoding it, and geo-reducing it
+Create, geocode, and geo-reduce a test graph:
 ./make_geo_reduce_test.py
 ./geo_import.py --input geo_test
-./geo_reduce.py --input get_test
+./geo_reduce.py --input geo_test
+
+Create, geocode, and geo-reduce the full social graph:
+./graph_util.py --input_type links \
+    --input "../../stanford-geo-viz/followers.csv" \
+    --write \
+    -m 0 --print_interval 1000000
+./geo_import.py --input followers
+./geo_reduce.py --input followers
