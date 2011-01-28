@@ -50,6 +50,10 @@ def geo_stats(g, sep = "\t"):
     s += sep + "selfedges: %i\n" % selfedges
     s += sep + "total edge weight: %i\n" % (edge_weight + selfedges)
     s += sep + "locations: %i\n" % locations
+    #s += sep + "nodes: %s\n" % g.nodes()
+    #s += sep + "edges: %s\n" % g.edges()
+    #s += sep + "node data: %s\n" % [g.node[n] for n in g.nodes()]
+    #s += sep + "edge data: %s\n" % [g[src][dst] for src, dst in g.edges()]
 
     return s
 
@@ -76,6 +80,7 @@ CITIES = [
     ((u'-33.869629', u'151.206955'), 'Sydney', 100),
     ((u'34.053490', u'-118.245319'), 'Los Angeles', 100)
 ]
+
 
 def valid(node, location):
     if node in BAD_LOCATIONS:
@@ -126,13 +131,14 @@ def geo_reduce(g, node_map):
     for key in node_map.values():
         init_geo_node(key, r)
 
-    # Now merge all nodes into the intiailized reduced graph
+    # Now merge all nodes into the initialized reduced graph
     for key in g.nodes_iter():
         merge_geo_node(key, node_map[key], g, r)
 
     # Add edges, possibly merging
     for src, dst in g.edges_iter():
 
+        #print "considering edge: %s, %s" % (src, dst)
         src_mapped = node_map[src]
         dst_mapped = node_map[dst]
 
@@ -140,9 +146,12 @@ def geo_reduce(g, node_map):
             # if reducing this edge leads to a selfedge, don't add an edge
             # just increment the selfedges field
             r.node[src_mapped]["selfedges"] += g[src][dst]["weight"]
+            #print "\tadding as selfedge"
         else:
-            if not r.has_edge(src, dst):
+            if not r.has_edge(src_mapped, dst_mapped):
+                #print "\tinitializing edge"
                 init_geo_edge(src_mapped, dst_mapped, r)
+            #print "\tmerging edge"
             merge_geo_edge(src, dst, src_mapped, dst_mapped, g, r)
 
     return r
@@ -169,7 +178,7 @@ def print_top_n(data, n, m):
         print data[i][0], data[i][1], loc_strs
 
 
-def geo_cluster(g, restrict = True):
+def geo_cluster(g, restrict = True, cities = CITIES):
     '''Cluster nodes via curated city descriptions.
 
     g: geo DiGraph
@@ -217,21 +226,24 @@ def geo_cluster(g, restrict = True):
     others_total = 0
     for (node, names, location) in data:
         found = False
-        for city_loc, city_name, radius in CITIES:
+        mapped_loc = node  # by default, keep the mapping.
+        for city_loc, city_name, radius in cities:
             if in_range(node, city_loc, radius):
                 if city_loc not in city_data:
                     city_data[city_loc] = {'total': 0, 'name': city_name}
                 #print "%s @%s covers %s @ %s\n" % (city_name, city_loc, node, location)
                 city_data[city_loc]['total'] += names
-                node_map[node] = city_loc
+                #node_map[node] = city_loc
+                mapped_loc = city_loc
                 found = True
                 break
         if not found:
             others_total += names
-            if not restrict:
-                node_map[node] = node
         else:
             city_total += names
+
+        if not restrict or found:
+            node_map[node] = mapped_loc
 
     print "stats for geo-clustered graph:"
     print "\tunique geo-locations (12 for restrict): %i" % len(set(node_map.values()))
@@ -239,7 +251,22 @@ def geo_cluster(g, restrict = True):
     print "\tothers_total: %i" % others_total
     print "\tcity_data: %s" % city_data
 
+    # TEMP: verify node_map coverage
+    for node in g.nodes():
+        if node not in node_map:
+            print "WARNING: node %s not in node_map" % node
+
     return node_map
+
+
+def geo_check_for_isolated(g):
+    '''Print warning if isolated (edge-less) nodes are found'''
+    total = 0
+    for node in g.nodes():
+        if g.degree(node) == 0:
+            total += 1
+    if total > 0:
+        print "WARNING: isolated nodes: %i" % total
 
 
 def geo_node_stats(g):

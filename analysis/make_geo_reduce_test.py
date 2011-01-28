@@ -14,14 +14,28 @@ def complete_graph(array):
                 pairs.append((i, j))
     return pairs
 
-data = [("geo_test",   [(1, 2), (2, 3), (3, 6), (6, 7)]),
-        ("geo_test_2", complete_graph([1, 2, 3, 6, 7])),
-        ("geo_test_3", [(1, 2), (2, 3), (3, 6), (6, 7), (6, 18)]),
-        ("geo_test_4", [(1, 2), (2, 3), (3, 6), (6, 7), (2, 1), (3, 2), (7, 6), (6, 3)])
+
+# 1: mojombo, San Fran
+# 2: defunkt, San Fran
+# 3: pjhyett, San Fran
+# 6: ivey, Alabama
+# 7: evanphx, Los Angeles
+# 18: wayneeseguin, NY
+# 65608: bess, Palo Alto
+data = [[(1, 2), (2, 3), (3, 6), (6, 7)],
+        complete_graph([1, 2, 3, 6, 7]),
+        [(6, 65608), (6, 1)],  # exposed a bug!
+        complete_graph([1, 6, 65608]),
+        complete_graph([1, 2, 3, 6, 7, 18, 65608]),
+        [(1, 2), (2, 3), (3, 6), (6, 7), (6, 18)],
+        [(1, 2), (2, 3), (3, 6), (6, 7), (2, 1), (3, 2), (7, 6), (6, 3)],
+        [(1, 65608), (65608, 1)],
+        [(1, 2), (6, 18)],
 ]
 
 ext = '.gpk'
-for filename, pairs in data:
+for i, pairs in enumerate(data):
+    filename = 'geo_test_' + str(i)
     if filename not in os.listdir('.'):
         os.mkdir(filename)
     filepath = os.path.join(filename, filename + ext)
