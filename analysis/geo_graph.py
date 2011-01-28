@@ -28,7 +28,7 @@ NODE_FIELDS = ["name", "location", "selfedges"]
 EDGE_FIELDS = ["weight"]
 
 
-def geo_stats(g, sep = "\t"):
+def geo_stats(g, sep = "\t", verbose = False):
     """Compute stats for a geo-graph."""
     i = 0
     node_weight = 0
@@ -50,10 +50,11 @@ def geo_stats(g, sep = "\t"):
     s += sep + "selfedges: %i\n" % selfedges
     s += sep + "total edge weight: %i\n" % (edge_weight + selfedges)
     s += sep + "locations: %i\n" % locations
-    #s += sep + "nodes: %s\n" % g.nodes()
-    #s += sep + "edges: %s\n" % g.edges()
-    #s += sep + "node data: %s\n" % [g.node[n] for n in g.nodes()]
-    #s += sep + "edge data: %s\n" % [g[src][dst] for src, dst in g.edges()]
+    if verbose:
+        s += sep + "nodes: %s\n" % g.nodes()
+        s += sep + "edges: %s\n" % g.edges()
+        s += sep + "node data: %s\n" % [g.node[n] for n in g.nodes()]
+        s += sep + "edge data: %s\n" % [g[src][dst] for src, dst in g.edges()]
 
     return s
 
@@ -123,7 +124,7 @@ def merge_geo_edge(src, dst, src_mapped, dst_mapped, g_in, g_out):
     g_out[src_mapped][dst_mapped]["weight"] += g_in[src][dst]["weight"]
 
 
-def geo_reduce(g, node_map):
+def geo_reduce(g, node_map, verbose = False):
     '''Reduce a geo-graph, given a node mapping.'''
     r = nx.DiGraph()
 
@@ -138,7 +139,7 @@ def geo_reduce(g, node_map):
     # Add edges, possibly merging
     for src, dst in g.edges_iter():
 
-        #print "considering edge: %s, %s" % (src, dst)
+        if verbose: print "considering edge: %s, %s" % (src, dst)
         src_mapped = node_map[src]
         dst_mapped = node_map[dst]
 
@@ -146,12 +147,12 @@ def geo_reduce(g, node_map):
             # if reducing this edge leads to a selfedge, don't add an edge
             # just increment the selfedges field
             r.node[src_mapped]["selfedges"] += g[src][dst]["weight"]
-            #print "\tadding as selfedge"
+            if verbose: print "\tadding as selfedge"
         else:
             if not r.has_edge(src_mapped, dst_mapped):
-                #print "\tinitializing edge"
+                if verbose: print "\tinitializing edge"
                 init_geo_edge(src_mapped, dst_mapped, r)
-            #print "\tmerging edge"
+            if verbose: print "\tmerging edge"
             merge_geo_edge(src, dst, src_mapped, dst_mapped, g, r)
 
     return r
