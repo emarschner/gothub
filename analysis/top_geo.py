@@ -8,7 +8,7 @@ import time
 
 import networkx as nx
 
-from geo_graph import geo_stats, geo_cluster
+from geo_graph import geo_stats, geo_cluster, geo_reduce, geo_filter_nones
 
 # Default input filename - .gpk extension assumed
 DEF_INPUT = "followers"
@@ -17,33 +17,49 @@ DEF_INPUT = "followers"
 DEF_WRITE = True
 
 
-class TopGeo:
+class GeoGraphProcessor:
 
-    def __init__(self, post_fcn = None):
-        self.parse_args()
-        options = self.options
+    def __init__(self, process_fcn, in_name, in_ext, out_name = None,
+                 out_ext = None, write = False):
 
-        input = options.input
         # Input graph
-        input_path = os.path.join(input, input + '.grg')
+        input_path = os.path.join(in_name, in_name + '.grg')
         # Nodes: (lat, long) tuples w/ list of associated users & location strings
         # Edges: weight: number of links in this direction
         g = nx.read_gpickle(input_path)
         if not g:
             raise Exception("null input file for input path %s" % input_path)
 
-        print "now processing"
-        input_stats = geo_stats(g)
-        r = geo_cluster(g)
-        output_stats = geo_stats(r)
+        r = process_fcn(g)
 
-        print "input stats: \n" + input_stats
-        print "output stats: \n" + output_stats
-        #self.stats(g)
-
-        if options.write:
-            geo_path = os.path.join(input, input + '.g2')
+        if write:
+            geo_path = os.path.join(in_name, in_name + '.g2')
             nx.write_gpickle(r, geo_path)
+
+
+class TopGeo:
+
+    def __init__(self):
+        self.parse_args()
+        options = self.options
+
+        def process_fcn(g):
+            print "now processing"
+            input_stats = geo_stats(g)
+            geo_filter_nones(g)
+            filtered_stats = geo_stats(g)
+            node_map = geo_cluster(g, restrict = False)
+            #r = nx.DiGraph()
+            r = geo_reduce(g, node_map)
+            output_stats = geo_stats(r)
+            print "input stats: \n" + input_stats
+            print "filtered stats: \n" + filtered_stats
+            print "output stats: \n" + output_stats
+
+            return r
+
+        GeoGraphProcessor(process_fcn, self.options.input, '.grg',
+                          out_ext = '.g2', write = self.options.write)
 
     def parse_args(self):
         opts = OptionParser()

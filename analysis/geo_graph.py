@@ -23,6 +23,9 @@ import geo
 METERS_TO_MILES = 0.000621371192
 # print geo.distance(portland, sanfran) * METERS_TO_MILES
 
+NODE_FIELDS = ["name", "location", "selfedges"]
+EDGE_FIELDS = ["weight"]
+
 
 def geo_stats(g, sep = "\t"):
     """Compute stats for a geo-graph."""
@@ -87,8 +90,77 @@ def in_range(node, city, radius):
     return dist < radius
 
 
-def geo_cluster(g):
-    '''Cluster nodes via curated city descriptions.'''
+def init_geo_node(key, g):
+    '''Initialize node w/geo attributes.'''
+    g.add_node(key)
+    g.node[key]["name"] = set([])
+    g.node[key]["location"] = set([])
+    g.node[key]["selfedges"] = 0
+
+
+def merge_geo_node(key, mapped_key, g_in, g_out):
+    '''Merge node geo attributes.'''
+    g_out.node[mapped_key]["name"] |= g_in.node[key]["name"]
+    g_out.node[mapped_key]["location"] |= g_in.node[key]["location"]
+    g_out.node[mapped_key]["selfedges"] += g_in.node[key]["selfedges"]
+
+
+def init_geo_edge(src, dst, g):
+    '''Intialize node w/geo attributes.'''
+    g.add_edge(src, dst)
+    g[src][dst]["weight"] = 0
+
+
+def merge_geo_edge(src, dst, src_mapped, dst_mapped, g_in, g_out):
+    '''Merge edge geo attributes.'''
+    g_out[src_mapped][dst_mapped]["weight"] += g_in[src][dst]["weight"]
+
+
+def geo_reduce(g, node_map):
+    '''Reduce a geo-graph, given a node mapping.'''
+    r = nx.DiGraph()
+
+    # Initialize r and copy in previously known names, locations, selfedges...
+    for key in node_map.values():
+        init_geo_node(key, r)
+
+    # Now merge all nodes into the intiailized reduced graph
+    for key in g.nodes_iter():
+        merge_geo_node(key, node_map[key], g, r)
+
+    # Add edges, possibly merging
+    for src, dst in g.edges_iter():
+
+        src_mapped = node_map[src]
+        dst_mapped = node_map[dst]
+
+        if src_mapped == dst_mapped:
+            # if reducing this edge leads to a selfedge, don't add an edge
+            # just increment the selfedges field
+            r.node[src_mapped]["selfedges"] += g[src][dst]["weight"]
+        else:
+            if not r.has_edge(src, dst):
+                init_geo_edge(src_mapped, dst_mapped, r)
+            merge_geo_edge(src, dst, src_mapped, dst_mapped, g, r)
+
+    return r
+
+
+def geo_filter_nones(g):
+    '''Filter out nodes at (None, None) plus links to there.'''
+    if g.has_node((None, None)):
+        g.remove_node((None, None))
+
+
+def geo_cluster(g, restrict = True):
+    '''Cluster nodes via curated city descriptions.
+
+    g: geo DiGraph
+    restrict: boolean
+        when True, node_map maps to None those not in cities
+        when False, node_map includes
+
+    '''
     # Find/print the top N geo locations
     n = 100
     data = []  # Array of ((lat, long), names, [location]) tuples
@@ -129,7 +201,7 @@ def geo_cluster(g):
     city_data = {} # map of city (lat, long) pairs to dict of total,
     # Allocate each city to the nearest 12, or don't allocate.
     # A starting implementation only - doesn't handle edge reassignment.
-    edge_map = {} # map original node locations to new ones.
+    node_map = {} # map original node locations to new ones.
     city_total = 0
     others_total = 0
     for (node, names, location) in data:
@@ -140,26 +212,23 @@ def geo_cluster(g):
                     city_data[city_loc] = {'total': 0, 'name': city_name}
                 #print "%s @%s covers %s @ %s\n" % (city_name, city_loc, node, location)
                 city_data[city_loc]['total'] += names
-                edge_map[node] = city_loc
+                node_map[node] = city_loc
                 found = True
                 break
         if not found:
             others_total += names
-            edge_map[node] = (0, 0)
+            if not restrict:
+                node_map[node] = node
         else:
             city_total += names
 
     print "stats for geo-clustered graph:"
-    print "\tunique geo-locations (eq 13?): %i" % len(set(edge_map.values()))
+    print "\tunique geo-locations (12 for restrict): %i" % len(set(node_map.values()))
     print "\tcity_total: %i" % city_total
     print "\tothers_total: %i" % others_total
     print "\tcity_data: %s" % city_data
 
-    # note coverage
-
-    r = nx.DiGraph()
-
-    return r
+    return node_map
 
 
 def geo_node_stats(g):
