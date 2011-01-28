@@ -8,6 +8,7 @@ import networkx as nx
 
 from geo_graph import geo_stats, geo_cluster, geo_reduce, geo_filter_nones
 from geo_graph import GeoGraphProcessor, geo_check_for_isolated, geo_city_stats
+from geo_graph import CITY_NAMES_DIST, CITY_NAMES_STARTER
 
 # Default input filename - .gpk extension assumed
 DEF_INPUT = "followers"
@@ -36,7 +37,7 @@ class GeoReduce:
             first_pass_stats = geo_stats(g)
             g = geo_reduce(g, node_map)
             output_stats = geo_stats(g)
-            city_stats = geo_city_stats(g)
+            city_stats = geo_city_stats(g, ordering = CITY_NAMES_DIST)
 
             print "input stats: \n" + input_stats
             print "filtered stats: \n" + filtered_stats

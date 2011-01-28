@@ -52,6 +52,24 @@ CITIES = [
     ((u'34.053490', u'-118.245319'), 'Los Angeles', 100)
 ]
 
+CITY_NAMES_STARTER = [city[1] for city in CITIES]
+
+# City names ordered manually (& roughly) by distance to San Fran
+CITY_NAMES_DIST = [
+    'San Francisco',
+    'Los Angeles',
+    'Portland',
+    'Seattle',
+    'Chicago',
+    'Toronto',
+    'New York',
+    'Tokyo',
+    'London',
+    'Berlin',
+    'Paris',
+    'Sydney'
+]
+
 
 def geo_stats(g, sep = SEP, verbose = False):
     """Compute stats for a geo-graph."""
@@ -112,8 +130,8 @@ def geo_city_graph(g, cities = CITIES):
     c = nx.DiGraph()
     edge_weight_total = 0
     edge_weights = []
-    for src_node, src_name, src_radius in CITIES:
-        for dst_node, dst_name, dst_radius  in CITIES:
+    for src_node, src_name, src_radius in cities:
+        for dst_node, dst_name, dst_radius  in cities:
             if src_node == dst_node:
                 edge_weight = g.node[src_node]['selfedges']
             elif g.has_edge(src_node, dst_node):
@@ -124,17 +142,17 @@ def geo_city_graph(g, cities = CITIES):
             c[src_name][dst_name]["weight"] = edge_weight
             edge_weight_total += edge_weight
             edge_weights.append(edge_weight)
-    return c, edge_weight_total, edge_weights
+    return (c, edge_weight_total, edge_weights)
 
-def geo_city_stats(g, sep = SEP):
 
-    c, edge_weight_total, edge_weights = geo_city_graph(g)
+def geo_city_stats(g, sep = SEP, ordering = CITY_NAMES_STARTER):
+
+    (c, edge_weight_total, edge_weights) = geo_city_graph(g)
     s = ''
+    print edge_weight_total
     s += sep + "total edge weight: %s\n" % edge_weight_total
     s += sep + "edge weights: %s\n" % sorted(edge_weights)
-
-    names = [city[1] for city in CITIES]
-    s += '\n' + text_matrix(c, names, "weight")
+    s += '\n' + text_matrix(c, ordering, "weight")
 
     return s
 
