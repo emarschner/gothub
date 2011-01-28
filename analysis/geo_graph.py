@@ -184,7 +184,7 @@ def geo_cluster(g, restrict = True):
         print e
     top = []
     # Print out data as a sanity check.
-    for i in range(n):
+    for i in range(min(n, len(data))):
         top.append(data[i])
         locs = list(data[i][2])
         loc_strs = []
