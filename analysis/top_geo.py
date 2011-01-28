@@ -66,25 +66,23 @@ class TopGeo:
         input_path = os.path.join(input, input + '.grg')
         # Nodes: (lat, long) tuples w/ list of associated users & location strings
         # Edges: weight: number of links in this direction
-        self.g = nx.read_gpickle(input_path)
-        if not self.g:
+        g = nx.read_gpickle(input_path)
+        if not g:
             raise Exception("null input file for input path %s" % input_path)
 
-        self.r = nx.DiGraph()
-
         print "now processing"
-        input_stats = geo_stats(self.g)
-        self.sort(self.g)
-        self.reduce()
-        output_stats = geo_stats(self.g)
+        input_stats = geo_stats(g)
+        self.sort(g)
+        r = self.reduce(g)
+        output_stats = geo_stats(r)
 
         print "input stats: \n" + input_stats
         print "output stats: \n" + output_stats
-        #self.stats(self.g)
+        #self.stats(g)
 
         if options.write:
             geo_path = os.path.join(input, input + '.g2')
-            nx.write_gpickle(self.r, geo_path)
+            nx.write_gpickle(r, geo_path)
 
     def parse_args(self):
         opts = OptionParser()
@@ -185,8 +183,8 @@ class TopGeo:
 
         # note coverage
 
-    def reduce(self):
-        pass
+    def reduce(self, g):
+        return g
 
     def stats(self, g):
         if self.options.verbose:
