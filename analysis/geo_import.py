@@ -10,6 +10,8 @@ import time
 import networkx as nx
 from pymongo import Connection
 
+from geo_graph import geo_stats
+
 # Default max number of edges to parse
 # Set to None to read all.
 DEF_MAX_EDGES = None
@@ -53,7 +55,7 @@ class GeoImport:
 
         print "now processing"
         self.reduce()
-        self.stats()
+        print geo_stats(self.r)
 
         if options.write:
             geo_path = os.path.join(input, input + '.grg')
@@ -177,28 +179,6 @@ class GeoImport:
         for i in edges_geo:
             print "edges w/ %i geo-locations: %i" % (i, edges_geo[i])
 
-    def stats(self):
-        i = 0
-        print "stats for reduced graph:"
-        print "\tnodes: %i" % self.r.number_of_nodes()
-        print "\tedges: %i" % self.r.number_of_edges()
-        total_edge_weight = 0
-        for src, dst in self.r.edges():
-            total_edge_weight += self.r[src][dst]["weight"]
-        print "\tedge weight total: %i" % total_edge_weight
-        if self.options.verbose:
-            for node in self.r:
-                print "node %i: %s" % (i, node)
-                #print self.r.node[node]
-                selfedges = self.r.node[node]["selfedges"]
-                location = self.r.node[node]["location"]
-                name = self.r.node[node]["name"]
-                print "\tselfedges: %s" % selfedges
-                print "\tlocations (%i): %s" % (len(location), location)
-                print "\tnames (%i): %s" % (len(name), name)
-                print "\tout_degree: %i" % len(self.r.neighbors(node))
-                print "\tin_degree: %i" % len(self.r.predecessors(node))
-                i += 1
 
 if __name__ == "__main__":
     GeoImport()
