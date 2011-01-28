@@ -27,8 +27,10 @@ METERS_TO_MILES = 0.000621371192
 NODE_FIELDS = ["name", "location", "selfedges"]
 EDGE_FIELDS = ["weight"]
 
+SEP = "\t"  # default separator
 
-def geo_stats(g, sep = "\t", verbose = False):
+
+def geo_stats(g, sep = SEP, verbose = False):
     """Compute stats for a geo-graph."""
     i = 0
     node_weight = 0
@@ -56,6 +58,49 @@ def geo_stats(g, sep = "\t", verbose = False):
         s += sep + "node data: %s\n" % [g.node[n] for n in g.nodes()]
         s += sep + "edge data: %s\n" % [g[src][dst] for src, dst in g.edges()]
 
+    return s
+
+
+def pad(input, width):
+    blank_str = ''
+    for i in range(width):
+        blank_str += ' '
+    line = input + blank_str
+    return line[0:width]
+
+
+def geo_city_stats(g, sep = SEP):
+    c = nx.DiGraph()
+    edge_weight_total = 0
+    edge_weights = []
+    for src_node, src_name, src_radius in CITIES:
+        for dst_node, dst_name, dst_radius  in CITIES:
+            if src_node == dst_node:
+                edge_weight = g.node[src_node]['selfedges']
+            elif g.has_edge(src_node, dst_node):
+                edge_weight = g[src_node][dst_node]["weight"]
+            else:
+                edge_weight = 0
+            c.add_edge(src_name, dst_name)
+            c[src_name][dst_name]["weight"] = edge_weight
+            edge_weight_total += edge_weight
+            edge_weights.append(edge_weight)
+
+    s = ''
+    s += sep + "total edge weight: %s\n" % edge_weight_total
+    s += sep + "edge weights: %s\n" % sorted(edge_weights)
+
+    names = [city[1] for city in CITIES]
+    width = 8
+    num_cities = len(CITIES)
+    s += '\n'
+    s += '|'.join([pad('', width)] + [pad(name, width) for name in names]) + '\n'
+    s += '|'.join(["--------" for i in range(num_cities + 1)]) + '\n'
+    for src_name in names:
+        values = [src_name]
+        for dst_name in names:
+            values.append(("%" + str(width) + "i") % c[src_name][dst_name]["weight"])
+        s += '|'.join([pad(value, width) for value in values]) + '\n'
     return s
 
 
