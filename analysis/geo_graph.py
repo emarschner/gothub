@@ -430,8 +430,8 @@ class GeoGraphProcessor:
             ordering = CITY_ORDERINGS[ordering_type]
             print "ordering is: %s" % ordering
             #print "city_names_starter: %s" % CITY_NAMES_STARTER
-            city_stats = geo_city_stats(g, ordering = ordering)
+            city_stats = geo_city_stats(r, ordering = ordering)
             print "city_stats: %s" % city_stats
             json_path = os.path.join(in_name, in_name + '_' + ordering_type + '.js')
             json_out = open(json_path, 'w')
-            json_out.write(geo_pv_json(g, ordering))
+            json_out.write(geo_pv_json(r, ordering))
