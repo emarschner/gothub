@@ -157,11 +157,14 @@ class GeoImport:
             have_src_geo = src_data and "lat" in src_data
             have_dst_geo = dst_data and "lat" in dst_data
 
+            if have_src_geo:
+                self.add_geo_node(src_data)
+            if have_dst_geo:
+                self.add_geo_node(dst_data)
+
             if have_src_geo and have_dst_geo:
                 #print src_data, dst_data
                 edges_geo[2] += 1
-                self.add_geo_node(src_data)
-                self.add_geo_node(dst_data)
                 self.add_geo_edge(src_data, dst_data)
             elif have_src_geo or have_dst_geo:
                 edges_geo[1] += 1
