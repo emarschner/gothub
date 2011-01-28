@@ -12,7 +12,7 @@ from pymongo import Connection
 
 # Default max number of edges to parse
 # Set to None to read all.
-DEF_MAX_EDGES = 1000
+DEF_MAX_EDGES = None
 
 # Default input filename - .gpk extension assumed
 DEF_INPUT = "followers_1000"
