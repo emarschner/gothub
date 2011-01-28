@@ -29,6 +29,29 @@ EDGE_FIELDS = ["weight"]
 
 SEP = "\t"  # default separator
 
+# Filter out unusable locations, like 106 people who said Earth...
+BAD_LOCATIONS = [
+]
+
+# Top 12 cities, just a start.
+CITIES = [
+    ((u'37.777125', u'-122.419644'), 'San Francisco', 100),
+    ((u'51.506325', u'-0.127144'), 'London', 100),
+    ((u'40.714550', u'-74.007124'), 'New York', 100),
+    ((u'35.670479', u'139.740921'), 'Tokyo', 100),
+    ((u'41.884150', u'-87.632409'), 'Chicago', 100),
+    ((u'47.603560', u'-122.329439'), 'Seattle', 90),
+    #((u'51.164175', u'10.454145'), 'Germany', 200)
+    ((u'52.516074', u'13.376987'), 'Berlin', 50),
+    ((u'48.856930', u'2.341200'), 'Paris', 150),
+    #((u'55.008390', u'-5.822485'), 'UK', 270) # would subsume London, but Ireland too.
+    #((u'32.991405', u'138.460247'), 'Japan', 50),
+    ((u'45.511795', u'-122.675629'), 'Portland', 80),
+    ((u'43.648560', u'-79.385324'), 'Toronto', 100),
+    ((u'-33.869629', u'151.206955'), 'Sydney', 100),
+    ((u'34.053490', u'-118.245319'), 'Los Angeles', 100)
+]
+
 
 def geo_stats(g, sep = SEP, verbose = False):
     """Compute stats for a geo-graph."""
@@ -80,8 +103,12 @@ def text_matrix(g, labels, param, width = 6):
         s += '|'.join([pad(value, width) for value in values]) + '\n'
     return s
 
+def geo_city_graph(g, cities = CITIES):
+    '''Returns graph w/weights between city names plus totals.
 
-def geo_city_stats(g, sep = SEP):
+    g: geo-graph
+    cities: array like CITIES
+    '''
     c = nx.DiGraph()
     edge_weight_total = 0
     edge_weights = []
@@ -97,7 +124,11 @@ def geo_city_stats(g, sep = SEP):
             c[src_name][dst_name]["weight"] = edge_weight
             edge_weight_total += edge_weight
             edge_weights.append(edge_weight)
+    return c, edge_weight_total, edge_weights
 
+def geo_city_stats(g, sep = SEP):
+
+    c, edge_weight_total, edge_weights = geo_city_graph(g)
     s = ''
     s += sep + "total edge weight: %s\n" % edge_weight_total
     s += sep + "edge weights: %s\n" % sorted(edge_weights)
@@ -106,30 +137,6 @@ def geo_city_stats(g, sep = SEP):
     s += '\n' + text_matrix(c, names, "weight")
 
     return s
-
-
-# Filter out unusable locations, like 106 people who said Earth...
-BAD_LOCATIONS = [
-]
-
-# Top 12 cities, just a start.
-CITIES = [
-    ((u'37.777125', u'-122.419644'), 'San Francisco', 100),
-    ((u'51.506325', u'-0.127144'), 'London', 100),
-    ((u'40.714550', u'-74.007124'), 'New York', 100),
-    ((u'35.670479', u'139.740921'), 'Tokyo', 100),
-    ((u'41.884150', u'-87.632409'), 'Chicago', 100),
-    ((u'47.603560', u'-122.329439'), 'Seattle', 90),
-    #((u'51.164175', u'10.454145'), 'Germany', 200)
-    ((u'52.516074', u'13.376987'), 'Berlin', 50),
-    ((u'48.856930', u'2.341200'), 'Paris', 150),
-    #((u'55.008390', u'-5.822485'), 'UK', 270) # would subsume London, but Ireland too.
-    #((u'32.991405', u'138.460247'), 'Japan', 50),
-    ((u'45.511795', u'-122.675629'), 'Portland', 80),
-    ((u'43.648560', u'-79.385324'), 'Toronto', 100),
-    ((u'-33.869629', u'151.206955'), 'Sydney', 100),
-    ((u'34.053490', u'-118.245319'), 'Los Angeles', 100)
-]
 
 
 def valid(node, location):
