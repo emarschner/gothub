@@ -69,6 +69,18 @@ def pad(input, width):
     return line[0:width]
 
 
+def text_matrix(g, labels, param, width = 6):
+    s = ''
+    s += '|'.join([pad('', width)] + [pad(label, width) for label in labels]) + '\n'
+    s += '|'.join(["------" for i in range(len(labels) + 1)]) + '\n'
+    for src_name in labels:
+        values = [src_name]
+        for dst_name in labels:
+            values.append(("%" + str(width) + "i") % g[src_name][dst_name][param])
+        s += '|'.join([pad(value, width) for value in values]) + '\n'
+    return s
+
+
 def geo_city_stats(g, sep = SEP):
     c = nx.DiGraph()
     edge_weight_total = 0
@@ -91,16 +103,8 @@ def geo_city_stats(g, sep = SEP):
     s += sep + "edge weights: %s\n" % sorted(edge_weights)
 
     names = [city[1] for city in CITIES]
-    width = 8
-    num_cities = len(CITIES)
-    s += '\n'
-    s += '|'.join([pad('', width)] + [pad(name, width) for name in names]) + '\n'
-    s += '|'.join(["--------" for i in range(num_cities + 1)]) + '\n'
-    for src_name in names:
-        values = [src_name]
-        for dst_name in names:
-            values.append(("%" + str(width) + "i") % c[src_name][dst_name]["weight"])
-        s += '|'.join([pad(value, width) for value in values]) + '\n'
+    s += '\n' + text_matrix(c, names, "weight")
+
     return s
 
 
