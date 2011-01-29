@@ -21,29 +21,8 @@
   <body><div id="center"><div id="fig">
     <script type="text/javascript+protovis">
 
-//var color = pv.Colors.category19().by(function(d) d.group);
+/* diverging: */
 /*
-var color = function(v) {
-  if (v < 2) return "#D73027";
-  if (v < 5) return "#FC8D59";
-  if (v < 8) return "#FEE090";
-  if (v < 11) return "#FFFFBF";
-  if (v < 14) return "#E0F3F8";
-  if (v < 17) return "#91BFDB";
-  return "#4575B4";
-};
-*/
-/*
-var color = function(v) {
-  if (v < 1/7) return "#D73027";
-  if (v < 2/7) return "#FC8D59";
-  if (v < 3/7) return "#FEE090";
-  if (v < 4/7) return "#FFFFBF";
-  if (v < 5/7) return "#E0F3F8";
-  if (v < 6/7) return "#91BFDB";
-  return "#4575B4";
-};
-*/
 var color = function(v) {
   if (v < 1/7) return "#B2182B";
   if (v < 2/7) return "#EF8A62";
@@ -52,6 +31,18 @@ var color = function(v) {
   if (v < 5/7) return "#E0F3F8";
   if (v < 6/7) return "#67A9CF";
   return "#2166AC";
+};
+*/
+
+/* sequential: */
+var color = function(v) {
+  if (v < 1/7) return "#F1EEF6";
+  if (v < 2/7) return "#D0D1E6";
+  if (v < 3/7) return "#A6BDDB";
+  if (v < 4/7) return "#74A9CF";
+  if (v < 5/7) return "#3690C0";
+  if (v < 6/7) return "#0570B0";
+  return "#034E7B";
 };
 
 var vis = new pv.Panel()
@@ -107,22 +98,16 @@ $.each(data.links, function(index, link) {
 var layout = vis.add(pv.Layout.Matrix)
     .directed(true)
     .nodes(data.nodes)
-    .links(data.links)
-  //.sort(function(a, b) { console.log(a); console.log(b); return degree(b.nodeName, 'source') - degree(a.nodeName, 'source'); });
-  //.sort(function(a, b) { /*console.log(a); console.log(b);*/ return b.linkDegree - a.linkDegree; });
+    .links(data.links);
 
 layout.link.add(pv.Bar)
-    //.fillStyle(function(l) color((degree(l.sourceNode.nodeName, 'source') - degree(l.sourceNode.nodeName, 'target')) + (degree(l.targetNode.nodeName, 'source') - degree(l.targetNode.nodeName, 'target'))))
-    //.fillStyle(function(l) { /*console.log(l);*/ return color(((Math.random() / (Math.abs(l.row - l.col) + 1)) + 1) / 2); })
-    //.fillStyle(function(l) { /*console.log(l);*/ return color(((Math.random() / (l.row - l.col + 1)) + 1) / 2); })
-  .fillStyle(function(l) { /*console.log(l);*/ return color((l.linkValue + 1000) / 2000); })
+  .fillStyle(function(l) { /*console.log(l);*/ return color(l.linkValue / (maxValue / 10)); })
     .antialias(false)
     .lineWidth(2);
-    //.lineWidth(function(l) ((1 - (Math.random() / (Math.abs(l.row - l.col) + 1))) * 8));
-    //.lineWidth(function(l) {});
 
 layout.label.add(pv.Label)
-    .textStyle(color);
+    .font("bold 12px sans-serif")
+    .textStyle('black');
 
 vis.render();
 
