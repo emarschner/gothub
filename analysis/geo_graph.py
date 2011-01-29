@@ -72,6 +72,18 @@ CITY_NAMES_DIST = [
 ]
 
 
+def geo_edge_weight(g):
+    """Compute total edge weight for a geo-graph."""
+    i = 0
+    selfedges = 0
+    for node in g.nodes_iter():
+        selfedges += g.node[node]["selfedges"]
+    edge_weight = 0
+    for src, dst in g.edges_iter():
+        edge_weight += g[src][dst]["weight"]
+    return (edge_weight + selfedges)
+
+
 def geo_stats(g, sep = SEP, verbose = False):
     """Compute stats for a geo-graph."""
     i = 0
@@ -134,7 +146,10 @@ def geo_city_graph(g, cities = CITIES):
     for src_node, src_name, src_radius in cities:
         for dst_node, dst_name, dst_radius  in cities:
             if src_node == dst_node:
-                edge_weight = g.node[src_node]['selfedges']
+                if src_node in g:
+                    edge_weight = g.node[src_node]['selfedges']
+                else:
+                    edge_weight = 0
             elif g.has_edge(src_node, dst_node):
                 edge_weight = g[src_node][dst_node]["weight"]
             else:
@@ -157,6 +172,9 @@ def geo_city_stats(g, sep = SEP, ordering = CITY_NAMES_DIST):
 
     a = link_asym(g)
     s += '\nAsym:\n' + text_matrix(a, ordering, "weight", format = "%0.2f")
+
+    e = geo_expected(g)
+    s += '\nExp:\n' + text_matrix(e, ordering, "weight", format = "%0.2f")
 
     return s
 
@@ -236,6 +254,44 @@ def link_asym(g, cities = CITIES):
             a[src_name][dst_name]["weight"] = ratio
 
     return a
+
+
+def geo_expected(g, total_edges = 1.0, cities = CITIES):
+    '''Returns expected link distribution of geo-graph.
+
+    g: geo-graph
+    locations: list of (lat, long) pairs
+
+    Expected link distribution refers to a uniform link distribution built
+    only with knowledge of the number of users at each location.  If we were to
+    randomly pick users this is the graph that would result, in the limit.  It
+    assumes that geography has no effect.
+    '''
+    e = nx.DiGraph()
+    exp_total = 0.0
+    total_edges = geo_edge_weight(g)
+    total_users = sum([len(g.node[node]["name"]) for node in g.nodes()])
+    for src_node, src_name, src_radius in cities:
+        for dst_node, dst_name, dst_radius  in cities:
+            src_users = 0
+            dst_users = 0
+            if src_node in g:
+                src_users = len(g.node[src_node]["name"])
+            if dst_node in g:
+                dst_users = len(g.node[dst_node]["name"])
+            src_fraction = float(src_users) / total_users
+            dst_fraction = float(dst_users) / total_users
+            link_expectation = src_fraction * dst_fraction * total_edges
+            e.add_edge(src_name, dst_name)
+            e[src_name][dst_name]["weight"] = link_expectation
+            exp_total += link_expectation
+
+    print "g.nodes: %s" % g.nodes()
+    print "total users: %i" % total_users
+    print "total input edges: %i" % total_edges
+    print "aggregate in-city edge total: %0.2f" % exp_total
+
+    return e
 
 
 def valid(node, location):
@@ -468,24 +524,35 @@ class GeoGraphProcessor:
         if not g:
             raise Exception("null input file for input path %s" % input_path)
 
-        r = process_fcn(g)
+        g = process_fcn(g)
 
         if write:
             geo_path = os.path.join(in_name, in_name + out_ext)
-            nx.write_gpickle(r, geo_path)
+            nx.write_gpickle(g, geo_path)
 
         if write_json:
-            print "using ordering: %s" % ordering_type
+            #print "using ordering: %s" % ordering_type
             ordering = CITY_ORDERINGS[ordering_type]
-            print "ordering is: %s" % ordering
+            #print "ordering is: %s" % ordering
             #print "city_names_starter: %s" % CITY_NAMES_STARTER
-            city_stats = geo_city_stats(r, ordering = ordering)
-            print "city_stats: %s" % city_stats
+            #city_stats = geo_city_stats(g, ordering = ordering)
+            #print "city_stats: %s" % city_stats
 
-            c = geo_city_graph(r)[0]
+            c = geo_city_graph(g)[0]
             text = geo_pv_json(c, ordering)
-            write_json_file(text, in_name, [ordering_type])
+            write_json_file(text, in_name, ["link", ordering_type])
+            link_matrix = text_matrix(c, ordering, "weight")
 
             a = link_asym(g)
             text = geo_pv_json(a, ordering)
             write_json_file(text, in_name, ["asym", ordering_type])
+            asym_matrix = text_matrix(a, ordering, "weight", format = "%0.2f")
+
+            e = geo_expected(g)
+            text = geo_pv_json(e, ordering)
+            write_json_file(text, in_name, ["exp", ordering_type])
+            exp_matrix = text_matrix(e, ordering, "weight", format = "%0.2f")
+
+            print '\nLinks:\n' + link_matrix
+            print '\nAsym:\n' +  asym_matrix
+            print '\nExp:\n' + exp_matrix
