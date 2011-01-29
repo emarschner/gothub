@@ -135,7 +135,8 @@ def text_matrix(g, labels, param, width = 6, format = "%i"):
             line_values.append(pad(format % g[src_name][dst_name][param], width))
             values.append(g[src_name][dst_name][param])
         s += '|'.join([pad(value, width) for value in line_values]) + '\n'
-    s += '>>> median: %0.2f, mean: %0.2f' % (np.median(values), np.mean(values)) +'\n'
+    s += '>>> median: %0.2f, mean: %0.2f, min: %0.2f, max: %0.2f' % \
+        (np.median(values), np.mean(values), min(values), max(values)) +'\n'
     return s
 
 def geo_city_graph(g, cities = CITIES):
