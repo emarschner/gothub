@@ -2,12 +2,19 @@
   <head>
     <title>Matrix Diagram</title>
     <script type="text/javascript" src="protovis-r3.2.js"></script>
-    <script type="text/javascript" src="data.js"></script>
+    <!--<script type="text/javascript" src="data.js"></script>-->
+    <!--<script type="text/javascript" src="followers_dist.js"></script>-->
+    <!--<script type="text/javascript" src="followers_exp_dist.js"></script>-->
+    <script type="text/javascript" src="followers_link_dist.js"></script>
+    <!--<script type="text/javascript" src="followers_starter.js"></script>-->
+    <!--<script type="text/javascript" src="followers_asym_exp_dist.js"></script>-->
+    <!--<script type="text/javascript" src="followers_asym_dist.js"></script>-->
+    <!--<script type="text/javascript" src="followers_act-exp-ratio_dist.js"></script>-->
     <script type="text/javascript" src="jquery.min.js"></script>
     <style type="text/css">
       #fig {
-        width: 800px;
-        height: 800px;
+        width: 2000px;
+        height: 2000px;
       }
     </style>
   </head>
@@ -15,6 +22,7 @@
     <script type="text/javascript+protovis">
 
 //var color = pv.Colors.category19().by(function(d) d.group);
+/*
 var color = function(v) {
   if (v < 2) return "#D73027";
   if (v < 5) return "#FC8D59";
@@ -22,12 +30,33 @@ var color = function(v) {
   if (v < 11) return "#FFFFBF";
   if (v < 14) return "#E0F3F8";
   if (v < 17) return "#91BFDB";
-  /* else */ return "#4575B4";
+  return "#4575B4";
+};
+*/
+/*
+var color = function(v) {
+  if (v < 1/7) return "#D73027";
+  if (v < 2/7) return "#FC8D59";
+  if (v < 3/7) return "#FEE090";
+  if (v < 4/7) return "#FFFFBF";
+  if (v < 5/7) return "#E0F3F8";
+  if (v < 6/7) return "#91BFDB";
+  return "#4575B4";
+};
+*/
+var color = function(v) {
+  if (v < 1/7) return "#B2182B";
+  if (v < 2/7) return "#EF8A62";
+  if (v < 3/7) return "#FDDBC7";
+  if (v < 4/7) return "#F7F7F7";
+  if (v < 5/7) return "#E0F3F8";
+  if (v < 6/7) return "#67A9CF";
+  return "#2166AC";
 };
 
 var vis = new pv.Panel()
-    .width(693)
-    .height(693)
+    .width(200)
+    .height(200)
     .top(90)
     .left(90);
 
@@ -43,7 +72,6 @@ var degree = function(name, type) {
     if (link[type] == nodeIndex) return true;
     return false;
   }).length;
-  //console.log(degree);
   return degree;
 };
 
@@ -55,25 +83,43 @@ var complement = function(source, target) {
   });
   var sum = 0;
   if (results.length > 0) {
-    console.log(results.length);
     $.each(results, function(index, link) {
       sum += link.value;
     });
+    console.log(sum);
     return sum;
   } else {
+    console.log(0);
     return 0;
   }
 }
 
+var maxValue = 0;
+$.each(data.links, function(index, link) {
+  maxValue = Math.max(maxValue, link.value);
+});
+
+var maxDiff = 0;
+$.each(data.links, function(index, link) {
+  maxDiff = Math.max(maxDiff, Math.abs(link.value - complement(link.source, link.target)));
+});
+
 var layout = vis.add(pv.Layout.Matrix)
+    .directed(true)
     .nodes(data.nodes)
     .links(data.links)
-    .sort(function(a, b) degree(b.nodeName, 'source') - degree(a.nodeName, 'source'));
+  //.sort(function(a, b) { console.log(a); console.log(b); return degree(b.nodeName, 'source') - degree(a.nodeName, 'source'); });
+  //.sort(function(a, b) { /*console.log(a); console.log(b);*/ return b.linkDegree - a.linkDegree; });
 
 layout.link.add(pv.Bar)
-    .fillStyle(function(l) color((degree(l.sourceNode.nodeName, 'source') - degree(l.sourceNode.nodeName, 'target')) + (degree(l.targetNode.nodeName, 'source') - degree(l.targetNode.nodeName, 'target'))))
+    //.fillStyle(function(l) color((degree(l.sourceNode.nodeName, 'source') - degree(l.sourceNode.nodeName, 'target')) + (degree(l.targetNode.nodeName, 'source') - degree(l.targetNode.nodeName, 'target'))))
+    //.fillStyle(function(l) { /*console.log(l);*/ return color(((Math.random() / (Math.abs(l.row - l.col) + 1)) + 1) / 2); })
+    //.fillStyle(function(l) { /*console.log(l);*/ return color(((Math.random() / (l.row - l.col + 1)) + 1) / 2); })
+  .fillStyle(function(l) { /*console.log(l);*/ return color((l.linkValue + 1000) / 2000); })
     .antialias(false)
-    .lineWidth(1);
+    .lineWidth(2);
+    //.lineWidth(function(l) ((1 - (Math.random() / (Math.abs(l.row - l.col) + 1))) * 8));
+    //.lineWidth(function(l) {});
 
 layout.label.add(pv.Label)
     .textStyle(color);
