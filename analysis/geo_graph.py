@@ -13,6 +13,7 @@
 import json
 from operator import itemgetter
 import os
+import numpy as np
 
 import networkx as nx
 
@@ -127,11 +128,14 @@ def text_matrix(g, labels, param, width = 6, format = "%i"):
     s = ''
     s += '|'.join([pad('', width)] + [pad(label, width) for label in labels]) + '\n'
     s += '|'.join(["------" for i in range(len(labels) + 1)]) + '\n'
+    values = []
     for src_name in labels:
-        values = [src_name]
+        line_values = [src_name]
         for dst_name in labels:
-            values.append(pad(format % g[src_name][dst_name][param], width))
-        s += '|'.join([pad(value, width) for value in values]) + '\n'
+            line_values.append(pad(format % g[src_name][dst_name][param], width))
+            values.append(g[src_name][dst_name][param])
+        s += '|'.join([pad(value, width) for value in line_values]) + '\n'
+    s += '>>> median: %0.2f, mean: %0.2f' % (np.median(values), np.mean(values)) +'\n'
     return s
 
 def geo_city_graph(g, cities = CITIES):
@@ -163,6 +167,8 @@ def geo_city_graph(g, cities = CITIES):
 
 def geo_pv_json(c, ordering = CITY_NAMES_DIST):
     '''Make JSON string suitable for use in Protovis matrix view.
+
+    c: DiGraph w/city names for nodes and weight field for each link
 
     The data looks like this:
 
@@ -572,7 +578,7 @@ class GeoGraphProcessor:
             write_json_file(text, in_name, ["act-exp-ratio", ordering_type])
             ratio_matrix = text_matrix(r, ordering, "weight", format = "%0.2f")
 
-            print '\nLinks:\n' + link_matrix
-            print '\nAsym:\n' +  asym_matrix
-            print '\nExp:\n' + exp_matrix
-            print '\nActExpRatio:\n' + ratio_matrix
+            print '\nLinks: actual link totals\n' + link_matrix
+            print '\nAsym: asymmetry ratio\n' +  asym_matrix
+            print '\nExp: expected link totals, given uniform distribution\n' + exp_matrix
+            print '\nActExpRatio: actual links / expected links\n' + ratio_matrix
