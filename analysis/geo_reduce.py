@@ -7,7 +7,7 @@ from optparse import OptionParser
 import networkx as nx
 
 from geo_graph import geo_stats, geo_cluster, geo_reduce, geo_filter_nones
-from geo_graph import GeoGraphProcessor, geo_check_for_isolated, geo_city_stats
+from geo_graph import GeoGraphProcessor, geo_check_for_isolated
 from geo_graph import CITY_NAMES_DIST, CITY_NAMES_STARTER, CITY_ORDERINGS
 
 # Default input filename - .gpk extension assumed

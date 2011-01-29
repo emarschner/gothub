@@ -161,24 +161,6 @@ def geo_city_graph(g, cities = CITIES):
     return (c, edge_weight_total, edge_weights)
 
 
-def geo_city_stats(g, sep = SEP, ordering = CITY_NAMES_DIST):
-
-    (c, edge_weight_total, edge_weights) = geo_city_graph(g)
-    s = ''
-    print edge_weight_total
-    s += sep + "total edge weight: %s\n" % edge_weight_total
-    s += sep + "edge weights: %s\n" % sorted(edge_weights)
-    s += '\nLinks:\n' + text_matrix(c, ordering, "weight")
-
-    a = link_asym(g)
-    s += '\nAsym:\n' + text_matrix(a, ordering, "weight", format = "%0.2f")
-
-    e = geo_expected(g)
-    s += '\nExp:\n' + text_matrix(e, ordering, "weight", format = "%0.2f")
-
-    return s
-
-
 def geo_pv_json(c, ordering = CITY_NAMES_DIST):
     '''Make JSON string suitable for use in Protovis matrix view.
 
@@ -239,16 +221,16 @@ def link_asym(g, cities = CITIES):
                 forward = 0
 
             if g.has_edge(dst_node, src_node):
-                backward = g[dst_node][src_node]["weight"]
+                expected = g[dst_node][src_node]["weight"]
             else:
-                backward = 0
+                expected = 0
 
-            if backward == 0 and forward == 0:
+            if expected == 0 and forward == 0:
                 ratio = RATIO_INDETERMINATE
-            elif backward == 0:
+            elif expected == 0:
                 ratio = RATIO_MAX
             else:
-                ratio = float(forward) / float(backward)
+                ratio = float(forward) / float(expected)
 
             a.add_edge(src_name, dst_name)
             a[src_name][dst_name]["weight"] = ratio
@@ -286,12 +268,46 @@ def geo_expected(g, total_edges = 1.0, cities = CITIES):
             e[src_name][dst_name]["weight"] = link_expectation
             exp_total += link_expectation
 
-    print "g.nodes: %s" % g.nodes()
     print "total users: %i" % total_users
     print "total input edges: %i" % total_edges
     print "aggregate in-city edge total: %0.2f" % exp_total
 
     return e
+
+
+def geo_actual_exp_ratio(g, exp, cities = CITIES):
+    '''Compute actual-to-expected ratio for each major city pair.'''
+    r = nx.DiGraph()
+    for src_node, src_name, src_radius in cities:
+        for dst_node, dst_name, dst_radius  in cities:
+            if src_node == dst_node:
+                # Stupide selfedges special case (should remove)
+                if src_node in g:
+                    actual = g.node[src_node]["selfedges"]
+                else:
+                    actual = 0
+            else:
+                if g.has_edge(src_node, dst_node):
+                    actual = g[src_node][dst_node]["weight"]
+                else:
+                    actual = 0
+
+            if exp.has_edge(src_name, dst_name):
+                expected = exp[src_name][dst_name]["weight"]
+            else:
+                expected = 0
+
+            if expected == 0 and actual == 0:
+                ratio = RATIO_INDETERMINATE
+            elif expected == 0:
+                ratio = RATIO_MAX
+            else:
+                ratio = float(actual) / float(expected)
+
+            r.add_edge(src_name, dst_name)
+            r[src_name][dst_name]["weight"] = ratio
+
+    return r
 
 
 def valid(node, location):
@@ -535,8 +551,6 @@ class GeoGraphProcessor:
             ordering = CITY_ORDERINGS[ordering_type]
             #print "ordering is: %s" % ordering
             #print "city_names_starter: %s" % CITY_NAMES_STARTER
-            #city_stats = geo_city_stats(g, ordering = ordering)
-            #print "city_stats: %s" % city_stats
 
             c = geo_city_graph(g)[0]
             text = geo_pv_json(c, ordering)
@@ -553,6 +567,12 @@ class GeoGraphProcessor:
             write_json_file(text, in_name, ["exp", ordering_type])
             exp_matrix = text_matrix(e, ordering, "weight", format = "%0.2f")
 
+            r = geo_actual_exp_ratio(g, e)
+            text = geo_pv_json(r, ordering)
+            write_json_file(text, in_name, ["act-exp-ratio", ordering_type])
+            ratio_matrix = text_matrix(r, ordering, "weight", format = "%0.2f")
+
             print '\nLinks:\n' + link_matrix
             print '\nAsym:\n' +  asym_matrix
             print '\nExp:\n' + exp_matrix
+            print '\nActExpRatio:\n' + ratio_matrix
