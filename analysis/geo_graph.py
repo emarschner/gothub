@@ -629,7 +629,7 @@ class GeoGraphProcessor:
 
             print '\nLinks: actual link totals\n' + link_matrix
             print '\nAsymRatio: asymmetry ratio\n' +  asym_r_matrix
-            print '\nAsymDiv: asymmetry ratio\n' +  asym_d_matrix
+            print '\nAsymDiv: asymmetry div\n' +  asym_d_matrix
             print '\nExp: expected link totals, given uniform distribution\n' + exp_matrix
             print '\nActExpRatio: actual links / expected links\n' + ae_ratio_matrix
             print '\nActExpDiv: divergence: -1 when act half exp, 0 when equal, +1 when act twice exp \n' + ae_div_matrix
