@@ -102,7 +102,7 @@ var color = colorSequential;
 
 //----------------------------------------------------------------------------
 var ranges = [];
-var max_range = 6;
+var max_range = 7;
 for (i = 0; i < max_range; i++) {
     ranges[i] = i / max_range / scaleFactor * maxValue;
 }
@@ -110,7 +110,7 @@ for (i = 0; i < max_range; i++) {
 
 var main = new pv.Panel()
     .width(300)
-    .height(400);
+    .height(450);
 
 var topPanel = main.add(pv.Panel)
     .width(200)
