@@ -153,7 +153,7 @@ var legend = bottomPanel.add(pv.Dot)
     .left(15)
     .font("12px sans-serif")
     .textStyle('black')
-    .text(function(d) {return Math.round(d)})
+    .text(function(d) {return d.toFixed(2)})
 
 main.render();
 
