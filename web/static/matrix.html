@@ -206,6 +206,8 @@ var layout = topPanel.add(pv.Layout.Matrix)
 
 layout.link.add(pv.Bar)
   .fillStyle(function(l) { /*console.log(l);*/ return color(scale(l.linkValue)); })
+  /* for asym matrix: */
+  //.fillStyle(function(l) { /*console.log(l);*/ return color(l.linkValue / 2); })
     .antialias(false)
     .lineWidth(2);
 
