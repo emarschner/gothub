@@ -13,9 +13,10 @@
 import json
 from operator import itemgetter
 import os
-import numpy as np
+import sys
 
 import networkx as nx
+import numpy as np
 
 # From http://hoegners.de/Maxi/geo/
 import geo
@@ -283,7 +284,46 @@ def geo_expected(g, total_edges = 1.0, cities = CITIES):
 
 
 def geo_actual_exp_ratio(g, exp, cities = CITIES):
-    '''Compute actual-to-expected ratio for each major city pair.'''
+    def ratio_fcn(actual, expected):
+        if expected == 0 and actual == 0:
+            ratio = RATIO_INDETERMINATE
+        elif expected == 0:
+            ratio = RATIO_MAX
+        else:
+            ratio = float(actual) / float(expected)
+        return ratio
+    return geo_actual_exp(g, exp, ratio_fcn, cities = CITIES)
+
+
+DIV_INDETERMINATE = 0.0
+DIV_MAX = sys.maxint
+DIV_MIN = -sys.maxint - 1
+
+def geo_actual_exp_div(g, exp, cities = CITIES):
+    '''Put difference on a diverging scale.'''
+    def div_fcn(actual, expected):
+        if expected == 0 and actual == 0:
+            div = DIV_INDETERMINATE
+        elif expected == 0:
+            div = DIV_MIN
+        elif actual == 0:
+            div = DIV_MAX
+        else:
+            if actual < expected:
+                div = -(float(expected)/float(actual) - 1)
+            elif actual > expected:
+                div = float(actual)/float(expected) - 1
+            else:
+                div = 0
+        return div
+    return geo_actual_exp(g, exp, div_fcn, cities = CITIES)
+
+
+def geo_actual_exp(g, exp, fcn, cities = CITIES):
+    '''Compute actual-to-expected metric for each major city pair.
+
+    fcn: computes metric given actual and expected values
+    '''
     r = nx.DiGraph()
     for src_node, src_name, src_radius in cities:
         for dst_node, dst_name, dst_radius  in cities:
@@ -304,15 +344,8 @@ def geo_actual_exp_ratio(g, exp, cities = CITIES):
             else:
                 expected = 0
 
-            if expected == 0 and actual == 0:
-                ratio = RATIO_INDETERMINATE
-            elif expected == 0:
-                ratio = RATIO_MAX
-            else:
-                ratio = float(actual) / float(expected)
-
             r.add_edge(src_name, dst_name)
-            r[src_name][dst_name]["weight"] = ratio
+            r[src_name][dst_name]["weight"] = fcn(actual, expected)
 
     return r
 
@@ -579,7 +612,13 @@ class GeoGraphProcessor:
             write_json_file(text, in_name, ["act-exp-ratio", ordering_type])
             ratio_matrix = text_matrix(r, ordering, "weight", format = "%0.2f")
 
+            d = geo_actual_exp_div(g, e)
+            text = geo_pv_json(d, ordering)
+            write_json_file(text, in_name, ["act-exp-div", ordering_type])
+            div_matrix = text_matrix(d, ordering, "weight", format = "%0.2f")
+
             print '\nLinks: actual link totals\n' + link_matrix
             print '\nAsym: asymmetry ratio\n' +  asym_matrix
             print '\nExp: expected link totals, given uniform distribution\n' + exp_matrix
             print '\nActExpRatio: actual links / expected links\n' + ratio_matrix
+            print '\nActExpDiv: divergence: -1 when act half exp, 0 when equal, +1 when act twice exp \n' + div_matrix
