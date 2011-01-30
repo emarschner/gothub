@@ -103,8 +103,11 @@ var color = colorSequential;
 //----------------------------------------------------------------------------
 var ranges = [];
 var max_range = 7;
+var scaleToDataRange = function(i) {
+    return i / max_range / scaleFactor * maxValue;
+};
 for (i = 0; i < max_range; i++) {
-    ranges[i] = i / max_range / scaleFactor * maxValue;
+    ranges[i] = scaleToDataRange(i);
 }
 //console.log(ranges)
 
@@ -135,6 +138,14 @@ layout.label.add(pv.Label)
 
 var gap = 15; // separates top and bottom panels
 
+var getLegendText = function(i) {
+    value = scaleToDataRange(i).toFixed(1);
+    valuePlusOne = scaleToDataRange(i + 1).toFixed(1);
+    if (i == 0) {return "< " + valuePlusOne};
+    if (i == max_range - 1) {return "> " + value};
+    return "[" + value + ", " + valuePlusOne + ")";
+};
+
 /* Legend */
 var bottomPanel = main.add(pv.Panel)
     .width(200)
@@ -153,7 +164,7 @@ var legend = bottomPanel.add(pv.Dot)
     .left(15)
     .font("12px sans-serif")
     .textStyle('black')
-    .text(function(d) {return d.toFixed(2)})
+    .text(function(d) {return getLegendText(this.index)})
 
 main.render();
 
