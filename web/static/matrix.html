@@ -9,8 +9,12 @@
     <!--<script type="text/javascript" src="followers_starter.js"></script>-->
     <!--<script type="text/javascript" src="followers_asym_exp_dist.js"></script>-->
     <!--<script type="text/javascript" src="followers_asym_dist.js"></script>-->
+    <!--<script type="text/javascript" src="followers_asym_div_dist.js"></script>-->
+    <script type="text/javascript" src="followers_asym_div_dist_reordered.js"></script>
+    <!--<script type="text/javascript" src="followers_asym_ratio_dist.js"></script>-->
+    <!--<script type="text/javascript" src="followers_asym_starter.js"></script>-->
     <!--<script type="text/javascript" src="followers_act-exp-ratio_dist.js"></script>-->
-    <script type="text/javascript" src="followers_act-exp-div_dist.js"></script>
+    <!--<script type="text/javascript" src="followers_act-exp-div_dist.js"></script>-->
     <script type="text/javascript" src="jquery.min.js"></script>
     <style type="text/css">
       #fig {
@@ -27,7 +31,7 @@
 // scaleFactor: 1 = saturate only at max; 10 = saturate at 1/10 of max.
 // There's generally an outlier, so increasing to 2, 3, ... so that a few
 // values saturate improves low-end resolution.
-var scaleFactor = 10;
+var scaleFactor = 6;
 
 // metric_type:  one in ['seq', 'div'] for sequential or divergent.
 var metric_type = 'div';
