@@ -20,6 +20,7 @@
   </head>
   <body><div id="center"><div id="fig">
     <script type="text/javascript+protovis">
+//----------------------------------------------------------------------------
 
 /* diverging: */
 var colorDiverging = function(v) {
@@ -42,12 +43,6 @@ var colorSequential = function(v) {
   if (v < 6/7) return "#0570B0";
   return "#034E7B";
 };
-
-var vis = new pv.Panel()
-    .width(200)
-    .height(200)
-    .top(90)
-    .left(90);
 
 var degree = function(name, type) {
   var nodeIndex = undefined;
@@ -97,11 +92,19 @@ var scaleByMax = function(value, adjust) {
     return value / maxValue * adjust;
 }
 
+//----------------------------------------------------------------------------
 var scale = function(value) {
     return scaleByMax(value, 10)
 }
 
 var color = colorSequential;
+
+//----------------------------------------------------------------------------
+var vis = new pv.Panel()
+    .width(200)
+    .height(200)
+    .top(90)
+    .left(90);
 
 var layout = vis.add(pv.Layout.Matrix)
     .directed(true)
