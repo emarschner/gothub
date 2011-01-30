@@ -241,13 +241,13 @@ def div_fcn(actual, expected):
             div = 0
     return div
 
-
-def link_asym(g, cities = CITIES):
+def link_asym(g, fcn, cities = CITIES):
     '''Returns matrix of link asymmetry ratios.
 
     For link (a, b), the ratio equals (a / b)
 
     g: geo-graph
+    fcn: computes metric given current and opposite-in-matrix values
     cities: array like CITIES
 
     return a DiGraph w/city names for nodes
@@ -256,19 +256,26 @@ def link_asym(g, cities = CITIES):
     for src_node, src_name, src_radius in cities:
         for dst_node, dst_name, dst_radius  in cities:
             if g.has_edge(src_node, dst_node):
-                forward = g[src_node][dst_node]["weight"]
+                current = g[src_node][dst_node]["weight"]
             else:
-                forward = 0
+                current = 0
 
             if g.has_edge(dst_node, src_node):
-                expected = g[dst_node][src_node]["weight"]
+                opposite = g[dst_node][src_node]["weight"]
             else:
-                expected = 0
+                opposite = 0
 
             a.add_edge(src_name, dst_name)
-            a[src_name][dst_name]["weight"] = ratio_fcn(forward, expected)
+            a[src_name][dst_name]["weight"] = fcn(current, opposite)
 
     return a
+
+
+def link_asym_ratio(g, cities = CITIES):
+    return link_asym(g, ratio_fcn, cities)
+
+def link_asym_div(g, cities = CITIES):
+    return link_asym(g, div_fcn, cities)
 
 
 def geo_expected(g, total_edges = 1.0, cities = CITIES):
@@ -309,12 +316,12 @@ def geo_expected(g, total_edges = 1.0, cities = CITIES):
 
 
 def geo_actual_exp_ratio(g, exp, cities = CITIES):
-    return geo_actual_exp(g, exp, ratio_fcn, cities = CITIES)
+    return geo_actual_exp(g, exp, ratio_fcn, cities)
 
 
 def geo_actual_exp_div(g, exp, cities = CITIES):
     '''Put difference on a diverging scale.'''
-    return geo_actual_exp(g, exp, div_fcn, cities = CITIES)
+    return geo_actual_exp(g, exp, div_fcn, cities)
 
 
 def geo_actual_exp(g, exp, fcn, cities = CITIES):
@@ -595,28 +602,34 @@ class GeoGraphProcessor:
             write_json_file(text, in_name, ["link", ordering_type])
             link_matrix = text_matrix(c, ordering, "weight")
 
-            a = link_asym(g)
-            text = geo_pv_json(a, ordering)
+            asym_r = link_asym_ratio(g)
+            text = geo_pv_json(asym_r, ordering)
             write_json_file(text, in_name, ["asym", ordering_type])
-            asym_matrix = text_matrix(a, ordering, "weight", format = "%0.2f")
+            asym_r_matrix = text_matrix(asym_r, ordering, "weight", format = "%0.2f")
+
+            asym_d = link_asym_div(g)
+            text = geo_pv_json(asym_d, ordering)
+            write_json_file(text, in_name, ["asym", ordering_type])
+            asym_d_matrix = text_matrix(asym_d, ordering, "weight", format = "%0.2f")
 
             e = geo_expected(g)
             text = geo_pv_json(e, ordering)
             write_json_file(text, in_name, ["exp", ordering_type])
             exp_matrix = text_matrix(e, ordering, "weight", format = "%0.2f")
 
-            r = geo_actual_exp_ratio(g, e)
-            text = geo_pv_json(r, ordering)
+            ae_r = geo_actual_exp_ratio(g, e)
+            text = geo_pv_json(ae_r, ordering)
             write_json_file(text, in_name, ["act-exp-ratio", ordering_type])
-            ratio_matrix = text_matrix(r, ordering, "weight", format = "%0.2f")
+            ae_ratio_matrix = text_matrix(ae_r, ordering, "weight", format = "%0.2f")
 
-            d = geo_actual_exp_div(g, e)
-            text = geo_pv_json(d, ordering)
+            ae_d = geo_actual_exp_div(g, e)
+            text = geo_pv_json(ae_d, ordering)
             write_json_file(text, in_name, ["act-exp-div", ordering_type])
-            div_matrix = text_matrix(d, ordering, "weight", format = "%0.2f")
+            ae_div_matrix = text_matrix(ae_d, ordering, "weight", format = "%0.2f")
 
             print '\nLinks: actual link totals\n' + link_matrix
-            print '\nAsym: asymmetry ratio\n' +  asym_matrix
+            print '\nAsymRatio: asymmetry ratio\n' +  asym_r_matrix
+            print '\nAsymDiv: asymmetry ratio\n' +  asym_d_matrix
             print '\nExp: expected link totals, given uniform distribution\n' + exp_matrix
-            print '\nActExpRatio: actual links / expected links\n' + ratio_matrix
-            print '\nActExpDiv: divergence: -1 when act half exp, 0 when equal, +1 when act twice exp \n' + div_matrix
+            print '\nActExpRatio: actual links / expected links\n' + ae_ratio_matrix
+            print '\nActExpDiv: divergence: -1 when act half exp, 0 when equal, +1 when act twice exp \n' + ae_div_matrix
