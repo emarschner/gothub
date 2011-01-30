@@ -210,6 +210,38 @@ def geo_pv_json(c, ordering = CITY_NAMES_DIST):
 RATIO_MAX = 1000
 RATIO_INDETERMINATE = 1.0
 
+def ratio_fcn(actual, expected):
+    if expected == 0 and actual == 0:
+        ratio = RATIO_INDETERMINATE
+    elif expected == 0:
+        ratio = RATIO_MAX
+    else:
+        ratio = float(actual) / float(expected)
+    return ratio
+
+
+DIV_INDETERMINATE = 0.0
+DIV_MAX = sys.maxint
+DIV_MIN = -sys.maxint - 1
+
+def div_fcn(actual, expected):
+    '''Compute divergence, a difference metric.'''
+    if expected == 0 and actual == 0:
+        div = DIV_INDETERMINATE
+    elif expected == 0:
+        div = DIV_MIN
+    elif actual == 0:
+        div = DIV_MAX
+    else:
+        if actual < expected:
+            div = -(float(expected)/float(actual) - 1)
+        elif actual > expected:
+            div = float(actual)/float(expected) - 1
+        else:
+            div = 0
+    return div
+
+
 def link_asym(g, cities = CITIES):
     '''Returns matrix of link asymmetry ratios.
 
@@ -233,15 +265,8 @@ def link_asym(g, cities = CITIES):
             else:
                 expected = 0
 
-            if expected == 0 and forward == 0:
-                ratio = RATIO_INDETERMINATE
-            elif expected == 0:
-                ratio = RATIO_MAX
-            else:
-                ratio = float(forward) / float(expected)
-
             a.add_edge(src_name, dst_name)
-            a[src_name][dst_name]["weight"] = ratio
+            a[src_name][dst_name]["weight"] = ratio_fcn(forward, expected)
 
     return a
 
@@ -284,38 +309,11 @@ def geo_expected(g, total_edges = 1.0, cities = CITIES):
 
 
 def geo_actual_exp_ratio(g, exp, cities = CITIES):
-    def ratio_fcn(actual, expected):
-        if expected == 0 and actual == 0:
-            ratio = RATIO_INDETERMINATE
-        elif expected == 0:
-            ratio = RATIO_MAX
-        else:
-            ratio = float(actual) / float(expected)
-        return ratio
     return geo_actual_exp(g, exp, ratio_fcn, cities = CITIES)
 
 
-DIV_INDETERMINATE = 0.0
-DIV_MAX = sys.maxint
-DIV_MIN = -sys.maxint - 1
-
 def geo_actual_exp_div(g, exp, cities = CITIES):
     '''Put difference on a diverging scale.'''
-    def div_fcn(actual, expected):
-        if expected == 0 and actual == 0:
-            div = DIV_INDETERMINATE
-        elif expected == 0:
-            div = DIV_MIN
-        elif actual == 0:
-            div = DIV_MAX
-        else:
-            if actual < expected:
-                div = -(float(expected)/float(actual) - 1)
-            elif actual > expected:
-                div = float(actual)/float(expected) - 1
-            else:
-                div = 0
-        return div
     return geo_actual_exp(g, exp, div_fcn, cities = CITIES)
 
 
