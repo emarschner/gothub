@@ -22,29 +22,11 @@
   <body><div id="center"><div id="fig">
     <script type="text/javascript+protovis">
 //----------------------------------------------------------------------------
+// VALUES TO CHANGE PER FIGURE
+var scaleFactor = 10; // 1 = saturate only at max; 10 saturate at 1/10 of max.
+var metric_type = 'seq'; // one in ['seq', 'div']
 
-/* diverging: */
-var colorDiverging = function(v) {
-  if (v < 1/7) return "#B2182B";
-  if (v < 2/7) return "#EF8A62";
-  if (v < 3/7) return "#FDDBC7";
-  if (v < 4/7) return "#F7F7F7";
-  if (v < 5/7) return "#E0F3F8";
-  if (v < 6/7) return "#67A9CF";
-  return "#2166AC";
-};
-
-/* sequential: */
-var colorSequential = function(v) {
-  if (v < 1/7) return "#F1EEF6";
-  if (v < 2/7) return "#D0D1E6";
-  if (v < 3/7) return "#A6BDDB";
-  if (v < 4/7) return "#74A9CF";
-  if (v < 5/7) return "#3690C0";
-  if (v < 6/7) return "#0570B0";
-  return "#034E7B";
-};
-
+//----------------------------------------------------------------------------
 var degree = function(name, type) {
   var nodeIndex = undefined;
   $.each(data.nodes, function(index, node) {
@@ -79,39 +61,100 @@ var complement = function(source, target) {
   }
 }
 
-var maxValue = 0;
+var maxValue = Number.MIN_VALUE;
+var minValue = Number.MAX_VALUE;
 $.each(data.links, function(index, link) {
   maxValue = Math.max(maxValue, link.value);
+  minValue = Math.min(minValue, link.value)
 });
+var absExtreme = Math.max([Math.abs(maxValue), Math.abs(minValue)]);
 
 var maxDiff = 0;
 $.each(data.links, function(index, link) {
   maxDiff = Math.max(maxDiff, Math.abs(link.value - complement(link.source, link.target)));
 });
 
-var scaleByMax = function(value, adjust) {
-    return value / maxValue * adjust;
-}
-
 //----------------------------------------------------------------------------
-var scaleFactor = 10;
-var scale = function(value) {
-    return scaleByMax(value, scaleFactor)
-}
-
-var color = colorSequential;
-
-//----------------------------------------------------------------------------
-var ranges = [];
-var max_range = 7;
-var scaleToDataRange = function(i) {
-    return i / max_range / scaleFactor * maxValue;
+// METRIC-SPECIFIC STUFF
+/* diverging: map within [-1,+1], using 9 colors */
+var colorDiverging = function(v) {
+  if (v < -4.0 / 4) return "#B2182B";
+  if (v < -3.0 / 4) return "#D6604D";
+  if (v < -2.0 / 4) return "#F4A582";
+  if (v < -1.0 / 4) return "#FDDBC7";
+  if (v < 1.0 / 4) return "#F7F7F7";
+  if (v < 2.0 / 4) return "#D1E5F0";
+  if (v < 3.0 / 4) return "#92C5DE";
+  if (v < 4.0 / 4) return "#4393C3";  
+  return "#2166AC";
 };
-for (i = 0; i < max_range; i++) {
-    ranges[i] = scaleToDataRange(i);
-}
-//console.log(ranges)
 
+/* sequential: */
+var colorSequential = function(v) {
+  if (v < 1/7) return "#F1EEF6";
+  if (v < 2/7) return "#D0D1E6";
+  if (v < 3/7) return "#A6BDDB";
+  if (v < 4/7) return "#74A9CF";
+  if (v < 5/7) return "#3690C0";
+  if (v < 6/7) return "#0570B0";
+  return "#034E7B";
+};
+
+var scale;
+var maxRange;
+var getLegendText;
+var ranges = [];
+var color;
+
+if (metric_type == 'seq') {
+    maxRange = 7;
+    var scaleByMax = function(value, adjust) {
+        return value / maxValue * adjust;
+    }
+    scale = function(value) {
+        return scaleByMax(value, scaleFactor)
+    }
+    getLegendText = function(i) {
+        value = scaleToDataRange(i).toFixed(1);
+        valuePlusOne = scaleToDataRange(i + 1).toFixed(1);
+        if (i == 0) {return "< " + valuePlusOne};
+        if (i == maxRange - 1) {return "> " + value};
+        return "[" + value + ", " + valuePlusOne + ")";
+    };
+    scaleToDataRange = function(i) {
+        return i / maxRange / scaleFactor * maxValue;
+    };
+    for (i = 0; i < maxRange; i++) {
+        ranges[i] = scaleToDataRange(i);
+    }
+    color = colorSequential;
+
+} else {
+    maxRange = 4;
+    var scaleByAbsExtreme = function(value, adjust) {
+        return value / maxValue * adjust;
+    }
+    scale = function(value) {
+        return scaleByMax(value, scaleFactor)
+    }
+    getLegendText = function(i) {
+        value = scaleToDataRange(i).toFixed(1);
+        valuePlusOne = scaleToDataRange(i + 1).toFixed(1);
+        if (i == 0) {return "< " + valuePlusOne};
+        if (i == maxRange - 1) {return "> " + value};
+        return "[" + value + ", " + valuePlusOne + ")";
+    };
+    scaleToDataRange = function(i) {
+        return i / maxRange / scaleFactor * maxValue;
+    };
+    for (i = 0; i < maxRange; i++) {
+        ranges[i] = scaleToDataRange(i);
+    }
+    color = colorDivergent;
+}
+
+//----------------------------------------------------------------------------
+// PROTOVIS DISPLAY
 var main = new pv.Panel()
     .width(300)
     .height(450);
@@ -138,14 +181,6 @@ layout.label.add(pv.Label)
     .textStyle('black');
 
 var gap = 15; // separates top and bottom panels
-
-var getLegendText = function(i) {
-    value = scaleToDataRange(i).toFixed(1);
-    valuePlusOne = scaleToDataRange(i + 1).toFixed(1);
-    if (i == 0) {return "< " + valuePlusOne};
-    if (i == max_range - 1) {return "> " + value};
-    return "[" + value + ", " + valuePlusOne + ")";
-};
 
 /* Legend */
 var bottomPanel = main.add(pv.Panel)
