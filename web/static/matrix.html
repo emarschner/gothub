@@ -13,8 +13,8 @@
     <script type="text/javascript" src="jquery.min.js"></script>
     <style type="text/css">
       #fig {
-        width: 2000px;
-        height: 2000px;
+        width: 400px;
+        height: 400px;
       }
     </style>
   </head>
@@ -70,10 +70,10 @@ var complement = function(source, target) {
     $.each(results, function(index, link) {
       sum += link.value;
     });
-    console.log(sum);
+    //console.log(sum);
     return sum;
   } else {
-    console.log(0);
+    //console.log(0);
     return 0;
   }
 }
@@ -93,20 +93,33 @@ var scaleByMax = function(value, adjust) {
 }
 
 //----------------------------------------------------------------------------
+var scaleFactor = 10;
 var scale = function(value) {
-    return scaleByMax(value, 10)
+    return scaleByMax(value, scaleFactor)
 }
 
 var color = colorSequential;
 
 //----------------------------------------------------------------------------
-var vis = new pv.Panel()
+var ranges = [];
+var max_range = 6;
+for (i = 0; i < max_range; i++) {
+    ranges[i] = i / max_range / scaleFactor * maxValue;
+}
+//console.log(ranges)
+
+var main = new pv.Panel()
+    .width(300)
+    .height(400);
+
+var topPanel = main.add(pv.Panel)
     .width(200)
     .height(200)
     .top(90)
     .left(90);
 
-var layout = vis.add(pv.Layout.Matrix)
+/* Main Matrix display */
+var layout = topPanel.add(pv.Layout.Matrix)
     .directed(true)
     .nodes(data.nodes)
     .links(data.links);
@@ -117,10 +130,32 @@ layout.link.add(pv.Bar)
     .lineWidth(2);
 
 layout.label.add(pv.Label)
-    .font("bold 12px sans-serif")
+    .font("12px sans-serif")
     .textStyle('black');
 
-vis.render();
+var gap = 15; // separates top and bottom panels
+
+/* Legend */
+var bottomPanel = main.add(pv.Panel)
+    .width(200)
+    .height(200)
+    .top(300 + gap)
+    .left(140);
+
+var legend = bottomPanel.add(pv.Dot)
+    .data(function() {return ranges})
+    .left(0)
+    .top(function() {return 0 + this.index * 15})
+    .size(25)
+    .strokeStyle(null)
+    .fillStyle(function(d) {return color(scale(d))})
+  .anchor("right").add(pv.Label)
+    .left(15)
+    .font("12px sans-serif")
+    .textStyle('black')
+    .text(function(d) {return Math.round(d)})
+
+main.render();
 
     </script>
   </div></div></body>
