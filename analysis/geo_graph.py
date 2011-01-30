@@ -604,12 +604,12 @@ class GeoGraphProcessor:
 
             asym_r = link_asym_ratio(g)
             text = geo_pv_json(asym_r, ordering)
-            write_json_file(text, in_name, ["asym", ordering_type])
+            write_json_file(text, in_name, ["asym_ratio", ordering_type])
             asym_r_matrix = text_matrix(asym_r, ordering, "weight", format = "%0.2f")
 
             asym_d = link_asym_div(g)
             text = geo_pv_json(asym_d, ordering)
-            write_json_file(text, in_name, ["asym", ordering_type])
+            write_json_file(text, in_name, ["asym_div", ordering_type])
             asym_d_matrix = text_matrix(asym_d, ordering, "weight", format = "%0.2f")
 
             e = geo_expected(g)
