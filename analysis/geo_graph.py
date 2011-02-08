@@ -206,6 +206,48 @@ def geo_pv_json(c, ordering = CITY_NAMES_DIST):
     return s
 
 
+def gexf_viz(city_name):
+    """Return viz param suitable for usage in Gephi."""
+    for src_node, src_name, src_radius in CITIES:
+        if src_name == city_name:
+            x = src_node[0]
+            y = src_node[1]
+            return {'position': {'x': x, 'y': y, 'z': 0}}
+    raise Exception("invalid city")
+
+
+def geo_gexf_graph(g, cities = CITIES):
+    '''Returns graph w/weights between city names plus vis params.
+
+    g: geo-graph
+    cities: array like CITIES
+    '''
+    c = nx.DiGraph()
+    edge_weight_total = 0
+    edge_weights = []
+    for src_node, src_name, src_radius in cities:
+        for dst_node, dst_name, dst_radius in cities:
+            if src_node == dst_node:
+                if src_node in g:
+                    edge_weight = g.node[src_node]['selfedges']
+                else:
+                    edge_weight = 0
+            elif g.has_edge(src_node, dst_node):
+                edge_weight = g[src_node][dst_node]["weight"]
+            else:
+                edge_weight = 0
+            c.add_edge(src_name, dst_name)
+            c[src_name][dst_name]["weight"] = edge_weight
+            c.node[src_name] = {'viz': gexf_viz(src_name)}
+            c.node[dst_name] = {'viz': gexf_viz(dst_name)}
+            c[src_name][dst_name]["weight"] = edge_weight
+            edge_weight_total += edge_weight
+            edge_weights.append(edge_weight)
+    for node in c.nodes():
+        print "node", c.node[node]
+    return c
+
+
 # Ratio to use in place of None or divide-by-zero error.
 RATIO_MAX = 1000
 RATIO_INDETERMINATE = 1.0
@@ -570,12 +612,17 @@ def write_json_file(text, name, append, ext = '.js'):
     json_out.write(text)
 
 
+def write_gexf_file(gexf, name, append, ext = '.gexf'):
+    gexf_path = os.path.join(name, name + '_' + '_'.join(append) + ext)
+    nx.write_gexf(gexf, gexf_path)
+
+
 class GeoGraphProcessor:
     '''Helper for import/process/export on geo-graphs.'''
 
     def __init__(self, process_fcn, in_name, in_ext, out_name = None,
                  out_ext = None, write = False, write_json = False,
-                 ordering_type = 'starter'):
+                 ordering_type = 'starter', write_gexf = False):
 
         if ordering_type not in CITY_ORDERINGS:
             raise Exception("invalid city ordering type: %s" % ordering_type)
@@ -591,38 +638,39 @@ class GeoGraphProcessor:
             geo_path = os.path.join(in_name, in_name + out_ext)
             nx.write_gpickle(g, geo_path)
 
-        if write_json:
+        if write_json or write_gexf:
+            c = geo_city_graph(g)[0]
+            asym_r = link_asym_ratio(g)
+            asym_d = link_asym_div(g)
+            e = geo_expected(g)
+            ae_r = geo_actual_exp_ratio(g, e)
+            ae_d = geo_actual_exp_div(g, e)
             #print "using ordering: %s" % ordering_type
             ordering = CITY_ORDERINGS[ordering_type]
             #print "ordering is: %s" % ordering
             #print "city_names_starter: %s" % CITY_NAMES_STARTER
 
-            c = geo_city_graph(g)[0]
+        if write_json:
             text = geo_pv_json(c, ordering)
             write_json_file(text, in_name, ["link", ordering_type])
             link_matrix = text_matrix(c, ordering, "weight")
 
-            asym_r = link_asym_ratio(g)
             text = geo_pv_json(asym_r, ordering)
             write_json_file(text, in_name, ["asym_ratio", ordering_type])
             asym_r_matrix = text_matrix(asym_r, ordering, "weight", format = "%0.2f")
 
-            asym_d = link_asym_div(g)
             text = geo_pv_json(asym_d, ordering)
             write_json_file(text, in_name, ["asym_div", ordering_type])
             asym_d_matrix = text_matrix(asym_d, ordering, "weight", format = "%0.2f")
 
-            e = geo_expected(g)
             text = geo_pv_json(e, ordering)
             write_json_file(text, in_name, ["exp", ordering_type])
             exp_matrix = text_matrix(e, ordering, "weight", format = "%0.2f")
 
-            ae_r = geo_actual_exp_ratio(g, e)
             text = geo_pv_json(ae_r, ordering)
             write_json_file(text, in_name, ["act-exp-ratio", ordering_type])
             ae_ratio_matrix = text_matrix(ae_r, ordering, "weight", format = "%0.2f")
 
-            ae_d = geo_actual_exp_div(g, e)
             text = geo_pv_json(ae_d, ordering)
             write_json_file(text, in_name, ["act-exp-div", ordering_type])
             ae_div_matrix = text_matrix(ae_d, ordering, "weight", format = "%0.2f")
@@ -633,3 +681,7 @@ class GeoGraphProcessor:
             print '\nExp: expected link totals, given uniform distribution\n' + exp_matrix
             print '\nActExpRatio: actual links / expected links\n' + ae_ratio_matrix
             print '\nActExpDiv: divergence: -1 when act half exp, 0 when equal, +1 when act twice exp \n' + ae_div_matrix
+
+        if write_gexf:
+            gexf = geo_gexf_graph(g)
+            write_gexf_file(gexf, in_name, ["link", ordering_type])

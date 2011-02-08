@@ -19,6 +19,9 @@ DEF_WRITE = True
 # Write JSON by default?
 DEF_WRITE_JSON = True
 
+# Write gexf by default?
+DEF_WRITE_GEXF = True
+
 
 class GeoReduce:
 
@@ -51,7 +54,8 @@ class GeoReduce:
         GeoGraphProcessor(process_fcn, self.options.input, '.grg',
                           out_ext = '.g2', write = self.options.write,
                           write_json = self.options.write_json,
-                          ordering_type = self.options.ordering_type)
+                          ordering_type = self.options.ordering_type,
+                          write_gexf = self.options.write_gexf)
 
     def parse_args(self):
         opts = OptionParser()
@@ -61,6 +65,9 @@ class GeoReduce:
         opts.add_option("-j", "--no-write-json", action = "store_false",
                         dest = "write_json", default = DEF_WRITE_JSON,
                         help = "don't write output file?")
+        opts.add_option("-g", "--no-write-gexf", action = "store_false",
+                        dest = "write_gexf", default = DEF_WRITE,
+                        help = "don't write gexf output file?")
         opts.add_option("--ordering_type", type = 'string',
                         default = 'dist',
                         help = "ordering type, one of " + str(CITY_ORDERINGS.keys()))
