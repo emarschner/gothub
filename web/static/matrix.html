@@ -216,7 +216,7 @@ if (metric_type == 'seq') {
 // PROTOVIS DISPLAY
 var gap = 15; // separates top and bottom panels
 
-var main = new pv.Panel()
+var main = new pv.Panel().canvas('fig')
     .width(600)
     .height(480);
 
@@ -240,7 +240,7 @@ layout.link.add(pv.Bar)
     .lineWidth(2);
 
 layout.label.add(pv.Label)
-    .font("12px sans-serif")
+    //.font("12px sans-serif")
     .textStyle('black');
 
 /* Legend */
@@ -259,7 +259,7 @@ var legend = bottomPanel.add(pv.Dot)
     .fillStyle(function(d) {return getLegendColor(this.index)})
   .anchor("right").add(pv.Label)
     .left(15)
-    .font("10px sans-serif")
+    //.font("10px sans-serif")
     .textStyle('black')
     .text(function(d) {return getLegendText(this.index)})
 
