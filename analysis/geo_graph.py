@@ -210,8 +210,8 @@ def gexf_viz(city_name):
     """Return viz param suitable for usage in Gephi."""
     for src_node, src_name, src_radius in CITIES:
         if src_name == city_name:
-            x = src_node[0]
-            y = src_node[1]
+            x = src_node[1] # long
+            y = src_node[0] # lat
             return {'position': {'x': x, 'y': y, 'z': 0}}
     raise Exception("invalid city")
 
