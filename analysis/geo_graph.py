@@ -73,6 +73,10 @@ CITY_NAMES_DIST = [
     'Sydney'
 ]
 
+# Arbitrary edge limit for geo-graph creation.  Should be passed-in param.
+LIMIT = 5000
+
+
 
 def geo_edge_weight(g):
     """Compute total edge weight for a geo-graph."""
@@ -206,7 +210,7 @@ def geo_pv_json(c, ordering = CITY_NAMES_DIST):
     return s
 
 
-def gexf_viz(city_name):
+def gexf_viz_city(city_name):
     """Return viz param suitable for usage in Gephi."""
     for src_node, src_name, src_radius in CITIES:
         if src_name == city_name:
@@ -216,7 +220,7 @@ def gexf_viz(city_name):
     raise Exception("invalid city")
 
 
-def geo_gexf_graph(g, cities = CITIES):
+def geo_gexf_cities_graph(g, cities = CITIES):
     '''Returns graph w/weights between city names plus vis params.
 
     g: geo-graph
@@ -225,6 +229,7 @@ def geo_gexf_graph(g, cities = CITIES):
     c = nx.DiGraph()
     edge_weight_total = 0
     edge_weights = []
+    # Iterate only over city pairs: O(C^2), where C is # cities.
     for src_node, src_name, src_radius in cities:
         for dst_node, dst_name, dst_radius in cities:
             if src_node == dst_node:
@@ -238,14 +243,101 @@ def geo_gexf_graph(g, cities = CITIES):
                 edge_weight = 0
             c.add_edge(src_name, dst_name)
             c[src_name][dst_name]["weight"] = edge_weight
-            c.node[src_name] = {'viz': gexf_viz(src_name)}
-            c.node[dst_name] = {'viz': gexf_viz(dst_name)}
+            c.node[src_name] = {'viz': gexf_viz_city(src_name)}
+            c.node[dst_name] = {'viz': gexf_viz_city(dst_name)}
             c[src_name][dst_name]["weight"] = edge_weight
             edge_weight_total += edge_weight
             edge_weights.append(edge_weight)
     for node in c.nodes():
         print "node", c.node[node]
     return c
+
+
+def gexf_viz(node):
+    """Return viz param suitable for usage in Gephi."""
+    lat, long = node
+    return {'position': {'x': long, 'y': lat, 'z': 0}}
+
+
+# Add edges only when both nodes have valid locations
+VALID_LOCATIONS_ONLY = True
+
+# Set the name to be the location (lat/long string) if no valid ones
+LOCATION_AS_NAME = False
+
+def geo_gexf_graph(g, limit = LIMIT):
+    '''Returns graph w/weights between city names plus vis params.
+
+    g: geo-graph
+    cities: array like CITIES
+    '''
+    good_names = 0
+    good_edges = 0
+    c = nx.DiGraph()
+    edge_weight_total = 0
+    edge_weights = []
+    max_edge_weight = 0
+    # Iterate over every node: O(E), where E is # edges.
+    print "g.number_of_edges: %i" % g.number_of_edges()
+
+    edges_seen = 0
+    for src_node, dst_node in g.edges():
+        if edges_seen == LIMIT:
+            break
+        else:
+            edges_seen += 1
+        if src_node == dst_node:
+            if src_node in g:
+                edge_weight = g.node[src_node]['selfedges']
+            else:
+                edge_weight = 0
+        elif g.has_edge(src_node, dst_node):
+            edge_weight = g[src_node][dst_node]["weight"]
+        else:
+            edge_weight = 0
+        #print src_node, dst_node
+        #print g.node[src_node]
+        if 0:
+            src_name = list(g.node[src_node]['location'])[0]
+            dst_name = list(g.node[dst_node]['location'])[0]
+        else:
+            src_name = str(src_node)
+            dst_name = str(dst_node)
+
+        if src_name:
+            good_names += 1
+        elif LOCATION_AS_NAME:
+            src_name = str(src_node)
+            print g.node[src_node]['location']
+            print "src_name: %s" % src_name
+
+        if dst_name:
+            good_names += 1
+        elif LOCATION_AS_NAME:
+            dst_name = str(dst_node)
+            print g.node[dst_node]['location']
+            print "dst_name: %s" % dst_name
+
+        if VALID_LOCATIONS_ONLY and src_name and dst_name:
+            c.add_edge(src_name, dst_name)
+            c[src_name][dst_name]["weight"] = edge_weight
+            c.node[src_name] = {'viz': gexf_viz(src_node)}
+            c.node[dst_name] = {'viz': gexf_viz(dst_node)}
+            c[src_name][dst_name]["weight"] = edge_weight
+            edge_weight_total += edge_weight
+            edge_weights.append(edge_weight)
+            good_edges += 1
+            if edge_weight > max_edge_weight:
+                max_edge_weight = edge_weight
+
+    for node in c.nodes():
+        #print "node", c.node[node]
+        pass
+    print "good_names: %i" % good_names
+    print "good_edges: %i" % good_edges
+    print "max edge weight: %i" % max_edge_weight
+    return c
+
 
 
 # Ratio to use in place of None or divide-by-zero error.
@@ -622,7 +714,8 @@ class GeoGraphProcessor:
 
     def __init__(self, process_fcn, in_name, in_ext, out_name = None,
                  out_ext = None, write = False, write_json = False,
-                 ordering_type = 'starter', write_gexf = False):
+                 ordering_type = 'starter', write_gexf = False,
+                 filter_cities = True):
 
         if ordering_type not in CITY_ORDERINGS:
             raise Exception("invalid city ordering type: %s" % ordering_type)
@@ -683,5 +776,11 @@ class GeoGraphProcessor:
             print '\nActExpDiv: divergence: -1 when act half exp, 0 when equal, +1 when act twice exp \n' + ae_div_matrix
 
         if write_gexf:
-            gexf = geo_gexf_graph(g)
-            write_gexf_file(gexf, in_name, ["link", ordering_type])
+            if filter_cities:
+                print "writing gexf for cities only"
+                gexf = geo_gexf_cities_graph(g)
+                write_gexf_file(gexf, in_name, ["link", 'cities'])
+            else:
+                print "writing full raw geo-graph"
+                gexf = geo_gexf_graph(g, LIMIT)
+                write_gexf_file(gexf, in_name, ["link", 'raw', str(LIMIT)])

@@ -34,3 +34,6 @@ Create, geocode, and geo-reduce the full social graph:
     -m 0 --print_interval 1000000
 ./geo_import.py --input followers
 ./geo_reduce.py --input followers
+
+Write the full raw graph to GEXF for Gephi and EdgeBundling:
+./geo_reduce.py --input followers --no-filter-cities

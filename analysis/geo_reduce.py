@@ -22,6 +22,9 @@ DEF_WRITE_JSON = True
 # Write gexf by default?
 DEF_WRITE_GEXF = True
 
+# Filter cities by default?
+DEF_FILTER_CITIES = True
+
 
 class GeoReduce:
 
@@ -41,13 +44,15 @@ class GeoReduce:
             g = geo_reduce(g, node_map)
             node_map = geo_cluster(g, restrict = False)
             first_pass_stats = geo_stats(g)
-            g = geo_reduce(g, node_map)
-            output_stats = geo_stats(g)
+            if self.options.filter_cities:
+                g = geo_reduce(g, node_map)
+                output_stats = geo_stats(g)
 
             print "input stats: \n" + input_stats
             print "filtered stats: \n" + filtered_stats
             print "first pass (no city filtering): \n"+ first_pass_stats
-            print "output stats: \n" + output_stats
+            if self.options.filter_cities:
+                print "output stats (after city filter): \n" + output_stats
 
             return g
 
@@ -55,7 +60,8 @@ class GeoReduce:
                           out_ext = '.g2', write = self.options.write,
                           write_json = self.options.write_json,
                           ordering_type = self.options.ordering_type,
-                          write_gexf = self.options.write_gexf)
+                          write_gexf = self.options.write_gexf,
+                          filter_cities = self.options.filter_cities)
 
     def parse_args(self):
         opts = OptionParser()
@@ -74,12 +80,14 @@ class GeoReduce:
         opts.add_option("--input", type = 'string', 
                         default = DEF_INPUT,
                         help = "name of input file (no ext)")
+        opts.add_option("--no-filter-cities", action = "store_false",
+                        dest = "filter_cities", default = DEF_FILTER_CITIES,
+                        help = "filter cities?")
         opts.add_option("-v", "--verbose", action = "store_true",
                         dest = "verbose", default = False,
                         help = "verbose output?")
         options, arguments = opts.parse_args()
         self.options = options
-
 
 if __name__ == "__main__":
     GeoReduce()
