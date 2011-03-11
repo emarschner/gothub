@@ -25,6 +25,9 @@ DEF_WRITE_GEXF = True
 # Filter cities by default?
 DEF_FILTER_CITIES = True
 
+# Maximum edges for GEXF output: if False, use all.
+DEF_MAX_EDGES = None
+
 
 class GeoReduce:
 
@@ -61,7 +64,8 @@ class GeoReduce:
                           write_json = self.options.write_json,
                           ordering_type = self.options.ordering_type,
                           write_gexf = self.options.write_gexf,
-                          filter_cities = self.options.filter_cities)
+                          filter_cities = self.options.filter_cities,
+                          max_edges = self.options.max_edges)
 
     def parse_args(self):
         opts = OptionParser()
@@ -83,6 +87,9 @@ class GeoReduce:
         opts.add_option("--no-filter-cities", action = "store_false",
                         dest = "filter_cities", default = DEF_FILTER_CITIES,
                         help = "filter cities?")
+        opts.add_option("-m", "--max_edges", type = "int",
+                        default = DEF_MAX_EDGES,
+                        help = "max edges to output in GEXF; default is all")
         opts.add_option("-v", "--verbose", action = "store_true",
                         dest = "verbose", default = False,
                         help = "verbose output?")

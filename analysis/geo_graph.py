@@ -73,10 +73,6 @@ CITY_NAMES_DIST = [
     'Sydney'
 ]
 
-# Arbitrary edge limit for geo-graph creation.  Should be passed-in param.
-LIMIT = 5000
-
-
 
 def geo_edge_weight(g):
     """Compute total edge weight for a geo-graph."""
@@ -265,7 +261,7 @@ VALID_LOCATIONS_ONLY = True
 # Set the name to be the location (lat/long string) if no valid ones
 LOCATION_AS_NAME = False
 
-def geo_gexf_graph(g, limit = LIMIT):
+def geo_gexf_graph(g, max_edges = None):
     '''Returns graph w/weights between city names plus vis params.
 
     g: geo-graph
@@ -282,7 +278,7 @@ def geo_gexf_graph(g, limit = LIMIT):
 
     edges_seen = 0
     for src_node, dst_node in g.edges():
-        if edges_seen == LIMIT:
+        if max_edges and (edges_seen == max_edges):
             break
         else:
             edges_seen += 1
@@ -715,7 +711,7 @@ class GeoGraphProcessor:
     def __init__(self, process_fcn, in_name, in_ext, out_name = None,
                  out_ext = None, write = False, write_json = False,
                  ordering_type = 'starter', write_gexf = False,
-                 filter_cities = True):
+                 filter_cities = True, max_edges = None):
 
         if ordering_type not in CITY_ORDERINGS:
             raise Exception("invalid city ordering type: %s" % ordering_type)
@@ -782,5 +778,5 @@ class GeoGraphProcessor:
                 write_gexf_file(gexf, in_name, ["link", 'cities'])
             else:
                 print "writing full raw geo-graph"
-                gexf = geo_gexf_graph(g, LIMIT)
-                write_gexf_file(gexf, in_name, ["link", 'raw', str(LIMIT)])
+                gexf = geo_gexf_graph(g, max_edges)
+                write_gexf_file(gexf, in_name, ["link", 'raw', str(max_edges)])
