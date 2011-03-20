@@ -779,4 +779,8 @@ class GeoGraphProcessor:
             else:
                 print "writing full raw geo-graph"
                 gexf = geo_gexf_graph(g, max_edges)
-                write_gexf_file(gexf, in_name, ["link", 'raw', str(max_edges)])
+                if max_edges:
+                    name_ext = ["link", 'raw', max_edges]
+                else:
+                    name_ext = ["link", 'raw', 'full']
+                write_gexf_file(gexf, in_name, name_ext)
