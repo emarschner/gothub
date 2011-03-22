@@ -560,6 +560,58 @@ def geo_reduce(g, node_map, verbose = False):
     return r
 
 
+def in_geo_range(node, box):
+    '''Return true if node is in box.'''
+    min_lat = float(box[0][0])
+    max_lat = float(box[1][0])
+    min_long = float(box[0][1])
+    max_long = float(box[1][1])
+    lat = float(node[0])
+    long = float(node[1])
+    lat_in_range = (lat > min_lat) and (lat < max_lat)
+    long_in_range = (long > min_long) and (long < max_long)
+    if lat_in_range and long_in_range:
+        return True
+    else:
+        return False
+
+
+def geo_box_reduce(g, geo_filter_box, verbose = False):
+    '''Reduce a geo-graph, given an array of lat/long pairs.'''
+    r = nx.DiGraph()
+
+    print "geo_filter_box: %s" % geo_filter_box
+
+    # Initialize r and copy in previously known names, locations, selfedges...
+    for key in g.nodes():
+        if in_geo_range(key, geo_filter_box):
+            if key not in r:
+                r.add_node(key)
+                r.node[key]["name"] = set([])
+                r.node[key]["location"] = set([])
+                r.node[key]["selfedges"] = 0
+            r.node[key]["name"] |= g.node[key]["name"]
+            r.node[key]["location"] |= g.node[key]["location"]
+            r.node[key]["selfedges"] += g.node[key]["selfedges"]
+
+    # Add only edges that are fully within the bounding box.
+    edges_added = 0
+    for src, dst in g.edges_iter():
+        if verbose: print "considering edge: %s, %s" % (src, dst)
+        if in_geo_range(src, geo_filter_box) and in_geo_range(dst, geo_filter_box):
+            if not r.has_edge(src, dst):
+                if verbose: print "\tinitializing edge"
+                init_geo_edge(src, dst, r)
+                edges_added += 1
+            else:
+                print 'saw edge already there???'
+            if verbose:
+                print "\tmerging edge"
+
+    print "Added %i edges." % edges_added
+    return r
+
+
 def geo_filter_nones(g):
     '''Filter out nodes at (None, None) plus links to there.'''
     if g.has_node((None, None)):
@@ -711,7 +763,8 @@ class GeoGraphProcessor:
     def __init__(self, process_fcn, in_name, in_ext, out_name = None,
                  out_ext = None, write = False, write_json = False,
                  ordering_type = 'starter', write_gexf = False,
-                 filter_cities = True, max_edges = None):
+                 filter_cities = True, max_edges = None,
+                 geo_filter = None, append = None):
 
         if ordering_type not in CITY_ORDERINGS:
             raise Exception("invalid city ordering type: %s" % ordering_type)
@@ -731,6 +784,7 @@ class GeoGraphProcessor:
             c = geo_city_graph(g)[0]
             asym_r = link_asym_ratio(g)
             asym_d = link_asym_div(g)
+
             e = geo_expected(g)
             ae_r = geo_actual_exp_ratio(g, e)
             ae_d = geo_actual_exp_div(g, e)
@@ -767,6 +821,7 @@ class GeoGraphProcessor:
             print '\nLinks: actual link totals\n' + link_matrix
             print '\nAsymRatio: asymmetry ratio\n' +  asym_r_matrix
             print '\nAsymDiv: asymmetry div\n' +  asym_d_matrix
+
             print '\nExp: expected link totals, given uniform distribution\n' + exp_matrix
             print '\nActExpRatio: actual links / expected links\n' + ae_ratio_matrix
             print '\nActExpDiv: divergence: -1 when act half exp, 0 when equal, +1 when act twice exp \n' + ae_div_matrix
@@ -776,6 +831,11 @@ class GeoGraphProcessor:
                 print "writing gexf for cities only"
                 gexf = geo_gexf_cities_graph(g)
                 write_gexf_file(gexf, in_name, ["link", 'cities'])
+            elif geo_filter:
+                print "writing gexf for filtered geo area only"
+                gexf = geo_gexf_graph(g)
+                write_gexf_file(gexf, in_name, ["link", 'geofilter', geo_filter])
+                pass
             else:
                 print "writing full raw geo-graph"
                 gexf = geo_gexf_graph(g, max_edges)

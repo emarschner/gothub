@@ -37,3 +37,11 @@ Create, geocode, and geo-reduce the full social graph:
 
 Write the full raw graph to GEXF for Gephi and EdgeBundling:
 ./geo_reduce.py --input followers --no-filter-cities
+
+Generate common GEXF outputs:
+for geo in world bayarea cali america europe australia; do
+    ./geo_reduce.py --input followers --no-filter-cities --geo_filter ${geo}
+done;
+
+Generate single GEXF output, reduced to bounding box:
+./geo_reduce.py --input followers --no-filter-cities --geo_filter australia

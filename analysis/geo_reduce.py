@@ -9,6 +9,7 @@ import networkx as nx
 from geo_graph import geo_stats, geo_cluster, geo_reduce, geo_filter_nones
 from geo_graph import GeoGraphProcessor, geo_check_for_isolated
 from geo_graph import CITY_NAMES_DIST, CITY_NAMES_STARTER, CITY_ORDERINGS
+from geo_graph import geo_box_reduce
 
 # Default input filename - .gpk extension assumed
 DEF_INPUT = "followers"
@@ -27,6 +28,17 @@ DEF_FILTER_CITIES = True
 
 # Maximum edges for GEXF output: if False, use all.
 DEF_MAX_EDGES = None
+
+# From gothub/queries.py:
+# Lat/long pairs.
+GEO_FILTERS = {
+    'world': [[-89.9, -179.9], [89.9, 179.9]],
+    'bayarea': [[37.2, -123.0], [38.0, -121.0]],
+    'cali': [[32.81, -125.0], [42.0, -114.0]],
+    'america': [[25.0, -125.0], [50.0, -65.0]],
+    'europe': [[33.0, 40.0], [71.55, 71.55]],
+    'australia': [[-48.0, 113.1], [-10.5, 179.0]]
+}
 
 
 class GeoReduce:
@@ -50,11 +62,15 @@ class GeoReduce:
             if self.options.filter_cities:
                 g = geo_reduce(g, node_map)
                 output_stats = geo_stats(g)
+            elif self.options.geo_filter:
+                print "Geo filtering..."
+                g = geo_box_reduce(g, GEO_FILTERS[self.options.geo_filter])
+                output_stats = geo_stats(g)
 
             print "input stats: \n" + input_stats
             print "filtered stats: \n" + filtered_stats
             print "first pass (no city filtering): \n"+ first_pass_stats
-            if self.options.filter_cities:
+            if self.options.filter_cities or self.options.geo_filter:
                 print "output stats (after city filter): \n" + output_stats
 
             return g
@@ -65,7 +81,9 @@ class GeoReduce:
                           ordering_type = self.options.ordering_type,
                           write_gexf = self.options.write_gexf,
                           filter_cities = self.options.filter_cities,
-                          max_edges = self.options.max_edges)
+                          max_edges = self.options.max_edges,
+                          geo_filter = self.options.geo_filter,
+                          append = self.options.append)
 
     def parse_args(self):
         opts = OptionParser()
@@ -90,6 +108,12 @@ class GeoReduce:
         opts.add_option("-m", "--max_edges", type = "int",
                         default = DEF_MAX_EDGES,
                         help = "max edges to output in GEXF; default is all")
+        opts.add_option( '--geo_filter', type='choice',
+                        choices = GEO_FILTERS.keys(), default = None,
+                        help = '[' + ' '.join( GEO_FILTERS.keys() ) + ']' )
+        opts.add_option("--append", type = 'string',
+                        default = None,
+                        help = "string to append to file output")
         opts.add_option("-v", "--verbose", action = "store_true",
                         dest = "verbose", default = False,
                         help = "verbose output?")
