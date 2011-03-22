@@ -37,7 +37,8 @@ BAD_LOCATIONS = [
 ]
 
 # Top 12 cities, just a start.
-CITIES = [
+# List of tuples. Each tuple has a (lat,long) pair, name, and radius in miles.
+CITIES_WORLD = [
     ((u'37.777125', u'-122.419644'), 'San Francisco', 100),
     ((u'51.506325', u'-0.127144'), 'London', 100),
     ((u'40.714550', u'-74.007124'), 'New York', 100),
@@ -54,6 +55,26 @@ CITIES = [
     ((u'-33.869629', u'151.206955'), 'Sydney', 100),
     ((u'34.053490', u'-118.245319'), 'Los Angeles', 100)
 ]
+
+CITIES_AMERICA = [
+    ((u'37.777125', u'-122.419644'), 'San Francisco', 100),
+    #((u'51.506325', u'-0.127144'), 'London', 100),
+    ((u'40.714550', u'-74.007124'), 'New York', 100),
+    #((u'35.670479', u'139.740921'), 'Tokyo', 100),
+    ((u'41.884150', u'-87.632409'), 'Chicago', 100),
+    ((u'47.603560', u'-122.329439'), 'Seattle', 90),
+    #((u'51.164175', u'10.454145'), 'Germany', 200)
+    #((u'52.516074', u'13.376987'), 'Berlin', 50),
+    #((u'48.856930', u'2.341200'), 'Paris', 150),
+    #((u'55.008390', u'-5.822485'), 'UK', 270) # would subsume London, but Ireland too.
+    #((u'32.991405', u'138.460247'), 'Japan', 50),
+    ((u'45.511795', u'-122.675629'), 'Portland', 80),
+    ((u'43.648560', u'-79.385324'), 'Toronto', 100),
+    #((u'-33.869629', u'151.206955'), 'Sydney', 100),
+    ((u'34.053490', u'-118.245319'), 'Los Angeles', 100)
+]
+
+CITIES = CITIES_WORLD
 
 CITY_NAMES_STARTER = [city[1] for city in CITIES]
 
@@ -72,6 +93,13 @@ CITY_NAMES_DIST = [
     'Paris',
     'Sydney'
 ]
+
+CITY_ORDERING_WORLD = CITY_NAMES_DIST
+
+CITY_ORDERINGS_WORLD = {
+    'starter': CITY_NAMES_STARTER,
+    'dist': CITY_NAMES_DIST
+}
 
 
 def geo_edge_weight(g):
@@ -741,11 +769,6 @@ def geo_node_stats(g):
         i += 1
 
 
-CITY_ORDERINGS = {'starter': CITY_NAMES_STARTER,
-                  'dist': CITY_NAMES_DIST
-}
-
-
 def write_json_file(text, name, append, ext = '.js'):
     json_path = os.path.join(name, name + '_' + '_'.join(append) + ext)
     json_out = open(json_path, 'w')
@@ -764,10 +787,20 @@ class GeoGraphProcessor:
                  out_ext = None, write = False, write_json = False,
                  ordering_type = 'starter', write_gexf = False,
                  filter_cities = True, max_edges = None,
-                 geo_filter = None, append = None):
+                 geo_filter = None, append = None,
+                 city_filter_name = None, city_list = None,
+                 city_ordering = None):
+        '''Init.
 
-        if ordering_type not in CITY_ORDERINGS:
-            raise Exception("invalid city ordering type: %s" % ordering_type)
+        ordering_type: DEPRECATED
+        city_filter_name: name of the city-data identifier
+        city_list: database of city info
+        city_ordering: list of city names, in order, for matrix output
+        '''
+
+        # CITY_ORDERINGS is deprecated
+        #if ordering_type not in CITY_ORDERINGS:
+        #    raise Exception("invalid city ordering type: %s" % ordering_type)
 
         input_path = os.path.join(in_name, in_name + in_ext)
         g = nx.read_gpickle(input_path)
@@ -789,33 +822,35 @@ class GeoGraphProcessor:
             ae_r = geo_actual_exp_ratio(g, e)
             ae_d = geo_actual_exp_div(g, e)
             #print "using ordering: %s" % ordering_type
-            ordering = CITY_ORDERINGS[ordering_type]
+            # CITY_ORDERINGS is deprecated
+            #ordering = CITY_ORDERINGS[ordering_type]
+            ordering = city_ordering
             #print "ordering is: %s" % ordering
             #print "city_names_starter: %s" % CITY_NAMES_STARTER
 
         if write_json:
             text = geo_pv_json(c, ordering)
-            write_json_file(text, in_name, ["link", ordering_type])
+            write_json_file(text, in_name, [city_filter_name, "link", ordering_type])
             link_matrix = text_matrix(c, ordering, "weight")
 
             text = geo_pv_json(asym_r, ordering)
-            write_json_file(text, in_name, ["asym_ratio", ordering_type])
+            write_json_file(text, in_name, [city_filter_name, "asym_ratio", ordering_type])
             asym_r_matrix = text_matrix(asym_r, ordering, "weight", format = "%0.2f")
 
             text = geo_pv_json(asym_d, ordering)
-            write_json_file(text, in_name, ["asym_div", ordering_type])
+            write_json_file(text, in_name, [city_filter_name, "asym_div", ordering_type])
             asym_d_matrix = text_matrix(asym_d, ordering, "weight", format = "%0.2f")
 
             text = geo_pv_json(e, ordering)
-            write_json_file(text, in_name, ["exp", ordering_type])
+            write_json_file(text, in_name, [city_filter_name, "exp", ordering_type])
             exp_matrix = text_matrix(e, ordering, "weight", format = "%0.2f")
 
             text = geo_pv_json(ae_r, ordering)
-            write_json_file(text, in_name, ["act-exp-ratio", ordering_type])
+            write_json_file(text, in_name, [city_filter_name, "act-exp-ratio", ordering_type])
             ae_ratio_matrix = text_matrix(ae_r, ordering, "weight", format = "%0.2f")
 
             text = geo_pv_json(ae_d, ordering)
-            write_json_file(text, in_name, ["act-exp-div", ordering_type])
+            write_json_file(text, in_name, [city_filter_name, "act-exp-div", ordering_type])
             ae_div_matrix = text_matrix(ae_d, ordering, "weight", format = "%0.2f")
 
             print '\nLinks: actual link totals\n' + link_matrix

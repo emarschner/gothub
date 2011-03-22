@@ -8,8 +8,9 @@ import networkx as nx
 
 from geo_graph import geo_stats, geo_cluster, geo_reduce, geo_filter_nones
 from geo_graph import GeoGraphProcessor, geo_check_for_isolated
-from geo_graph import CITY_NAMES_DIST, CITY_NAMES_STARTER, CITY_ORDERINGS
-from geo_graph import geo_box_reduce
+from geo_graph import CITY_NAMES_DIST, CITY_NAMES_STARTER
+from geo_graph import geo_box_reduce, CITIES_WORLD, CITIES_AMERICA
+from geo_graph import CITY_NAMES_STARTER, CITY_ORDERINGS_WORLD
 
 # Default input filename - .gpk extension assumed
 DEF_INPUT = "followers"
@@ -38,6 +39,33 @@ GEO_FILTERS = {
     'america': [[25.0, -125.0], [50.0, -65.0]],
     'europe': [[33.0, 40.0], [71.55, 71.55]],
     'australia': [[-48.0, 113.1], [-10.5, 179.0]]
+}
+
+# List of tuples. Each tuple has a (lat,long) pair, name, and radius in miles.
+CITY_FILTERS = {
+    'world': CITIES_WORLD,
+    'america': CITIES_AMERICA
+}
+
+CITY_FILTER_DEF = 'world'
+
+CITY_ORDERING_AMERICA_DIST = [
+    'San Francisco',
+    'Los Angeles',
+    'Portland',
+    'Seattle',
+    'Chicago',
+    'Toronto',
+    'New York'
+]
+
+CITY_ORDERINGS_AMERICA = {
+    'dist': CITY_ORDERING_AMERICA_DIST
+}
+
+CITY_ORDERINGS = {
+    'world': CITY_ORDERINGS_WORLD,
+    'america': CITY_ORDERINGS_AMERICA
 }
 
 
@@ -83,7 +111,10 @@ class GeoReduce:
                           filter_cities = self.options.filter_cities,
                           max_edges = self.options.max_edges,
                           geo_filter = self.options.geo_filter,
-                          append = self.options.append)
+                          append = self.options.append,
+                          city_filter_name = self.options.city_filter,
+                          city_list = CITY_FILTERS[self.options.city_filter],
+                          city_ordering = CITY_ORDERINGS[self.options.city_filter][self.options.ordering_type])
 
     def parse_args(self):
         opts = OptionParser()
@@ -111,6 +142,9 @@ class GeoReduce:
         opts.add_option( '--geo_filter', type='choice',
                         choices = GEO_FILTERS.keys(), default = None,
                         help = '[' + ' '.join( GEO_FILTERS.keys() ) + ']' )
+        opts.add_option( '--city_filter', type='choice',
+                        choices = CITY_FILTERS.keys(), default = CITY_FILTER_DEF,
+                        help = '[' + ' '.join( CITY_FILTERS.keys() ) + ']' )
         opts.add_option("--append", type = 'string',
                         default = None,
                         help = "string to append to file output")
