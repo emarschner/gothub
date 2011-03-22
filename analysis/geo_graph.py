@@ -58,28 +58,33 @@ CITIES_WORLD = [
 
 CITIES_AMERICA = [
     ((u'37.777125', u'-122.419644'), 'San Francisco', 100),
-    #((u'51.506325', u'-0.127144'), 'London', 100),
     ((u'40.714550', u'-74.007124'), 'New York', 100),
-    #((u'35.670479', u'139.740921'), 'Tokyo', 100),
     ((u'41.884150', u'-87.632409'), 'Chicago', 100),
     ((u'47.603560', u'-122.329439'), 'Seattle', 90),
-    #((u'51.164175', u'10.454145'), 'Germany', 200)
-    #((u'52.516074', u'13.376987'), 'Berlin', 50),
-    #((u'48.856930', u'2.341200'), 'Paris', 150),
-    #((u'55.008390', u'-5.822485'), 'UK', 270) # would subsume London, but Ireland too.
-    #((u'32.991405', u'138.460247'), 'Japan', 50),
     ((u'45.511795', u'-122.675629'), 'Portland', 80),
     ((u'43.648560', u'-79.385324'), 'Toronto', 100),
-    #((u'-33.869629', u'151.206955'), 'Sydney', 100),
-    ((u'34.053490', u'-118.245319'), 'Los Angeles', 100)
+    ((u'34.053490', u'-118.245319'), 'Los Angeles', 100),
+    ((u'30.267605', u'-97.742984'), 'Austin', 100),
+    ((u'42.358635', u'-71.056699'), 'Boston', 60),
+    ((u'49.260440', u'-123.114034'), 'Vancouver', 100),
+    ((u'45.512293', u'-73.554407'), 'Montreal', 100),
+    ((u'33.748315', u'-84.391109'), 'Atlanta', 100),
+    ((u'38.890370', u'-77.031959'), 'Washington DC', 80),
+    ((u'39.952270', u'-75.162369'), 'Philadelphia', 100),
+    ((u'32.715695', u'-117.161719'), 'San Diego', 50),
+    ((u'32.778155', u'-96.795404'), 'Dallas', 100),
+    ((u'39.740010', u'-104.992259'), 'Denver', 100)
 ]
 
-CITIES = CITIES_WORLD
+# DEPRECATED!
+#CITIES = CITIES_WORLD
 
-CITY_NAMES_STARTER = [city[1] for city in CITIES]
+CITY_NAMES_WORLD_STARTER = [city[1] for city in CITIES_WORLD]
+
+CITY_ORDERING_AMERICA_DIST = [city[1] for city in CITIES_AMERICA]
 
 # City names ordered manually (& roughly) by distance to San Fran
-CITY_NAMES_DIST = [
+CITY_NAMES_WORLD_DIST = [
     'San Francisco',
     'Los Angeles',
     'Portland',
@@ -94,11 +99,11 @@ CITY_NAMES_DIST = [
     'Sydney'
 ]
 
-CITY_ORDERING_WORLD = CITY_NAMES_DIST
+CITY_ORDERING_WORLD = CITY_NAMES_WORLD_DIST
 
 CITY_ORDERINGS_WORLD = {
-    'starter': CITY_NAMES_STARTER,
-    'dist': CITY_NAMES_DIST
+    'starter': CITY_NAMES_WORLD_STARTER,
+    'dist': CITY_NAMES_WORLD_DIST
 }
 
 
@@ -168,7 +173,7 @@ def text_matrix(g, labels, param, width = 6, format = "%i"):
         (np.median(values), np.mean(values), min(values), max(values)) +'\n'
     return s
 
-def geo_city_graph(g, cities = CITIES):
+def geo_city_graph(g, cities):
     '''Returns graph w/weights between city names plus totals.
 
     g: geo-graph
@@ -195,7 +200,7 @@ def geo_city_graph(g, cities = CITIES):
     return (c, edge_weight_total, edge_weights)
 
 
-def geo_pv_json(c, ordering = CITY_NAMES_DIST):
+def geo_pv_json(c, ordering):
     '''Make JSON string suitable for use in Protovis matrix view.
 
     c: DiGraph w/city names for nodes and weight field for each link
@@ -234,9 +239,9 @@ def geo_pv_json(c, ordering = CITY_NAMES_DIST):
     return s
 
 
-def gexf_viz_city(city_name):
+def gexf_viz_city(city_name, cities):
     """Return viz param suitable for usage in Gephi."""
-    for src_node, src_name, src_radius in CITIES:
+    for src_node, src_name, src_radius in cities:
         if src_name == city_name:
             x = src_node[1] # long
             y = src_node[0] # lat
@@ -244,7 +249,7 @@ def gexf_viz_city(city_name):
     raise Exception("invalid city")
 
 
-def geo_gexf_cities_graph(g, cities = CITIES):
+def geo_gexf_cities_graph(g, cities):
     '''Returns graph w/weights between city names plus vis params.
 
     g: geo-graph
@@ -267,8 +272,8 @@ def geo_gexf_cities_graph(g, cities = CITIES):
                 edge_weight = 0
             c.add_edge(src_name, dst_name)
             c[src_name][dst_name]["weight"] = edge_weight
-            c.node[src_name] = {'viz': gexf_viz_city(src_name)}
-            c.node[dst_name] = {'viz': gexf_viz_city(dst_name)}
+            c.node[src_name] = {'viz': gexf_viz_city(src_name, cities)}
+            c.node[dst_name] = {'viz': gexf_viz_city(dst_name, cities)}
             c[src_name][dst_name]["weight"] = edge_weight
             edge_weight_total += edge_weight
             edge_weights.append(edge_weight)
@@ -399,7 +404,7 @@ def div_fcn(actual, expected):
             div = 0
     return div
 
-def link_asym(g, fcn, cities = CITIES):
+def link_asym(g, fcn, cities):
     '''Returns matrix of link asymmetry ratios.
 
     For link (a, b), the ratio equals (a / b)
@@ -429,14 +434,14 @@ def link_asym(g, fcn, cities = CITIES):
     return a
 
 
-def link_asym_ratio(g, cities = CITIES):
+def link_asym_ratio(g, cities):
     return link_asym(g, ratio_fcn, cities)
 
-def link_asym_div(g, cities = CITIES):
+def link_asym_div(g, cities):
     return link_asym(g, div_fcn, cities)
 
 
-def geo_expected(g, total_edges = 1.0, cities = CITIES):
+def geo_expected(g, cities, total_edges = 1.0):
     '''Returns expected link distribution of geo-graph.
 
     g: geo-graph
@@ -473,16 +478,16 @@ def geo_expected(g, total_edges = 1.0, cities = CITIES):
     return e
 
 
-def geo_actual_exp_ratio(g, exp, cities = CITIES):
+def geo_actual_exp_ratio(g, exp, cities):
     return geo_actual_exp(g, exp, ratio_fcn, cities)
 
 
-def geo_actual_exp_div(g, exp, cities = CITIES):
+def geo_actual_exp_div(g, exp, cities):
     '''Put difference on a diverging scale.'''
     return geo_actual_exp(g, exp, div_fcn, cities)
 
 
-def geo_actual_exp(g, exp, fcn, cities = CITIES):
+def geo_actual_exp(g, exp, fcn, cities):
     '''Compute actual-to-expected metric for each major city pair.
 
     fcn: computes metric given actual and expected values
@@ -661,7 +666,7 @@ def print_top_n(data, n, m):
         print data[i][0], data[i][1], loc_strs
 
 
-def geo_cluster(g, restrict = True, cities = CITIES):
+def geo_cluster(g, cities, restrict = True):
     '''Cluster nodes via curated city descriptions.
 
     g: geo DiGraph
@@ -671,7 +676,7 @@ def geo_cluster(g, restrict = True, cities = CITIES):
 
     '''
     # Find/print the top N geo locations
-    n = 20
+    n = 50
     data = []  # Array of ((lat, long), names, [location]) tuples
     filtered_users = 0
     filtered_locations = []
@@ -814,13 +819,13 @@ class GeoGraphProcessor:
             nx.write_gpickle(g, geo_path)
 
         if write_json or write_gexf:
-            c = geo_city_graph(g)[0]
-            asym_r = link_asym_ratio(g)
-            asym_d = link_asym_div(g)
+            c = geo_city_graph(g, city_list)[0]
+            asym_r = link_asym_ratio(g, city_list)
+            asym_d = link_asym_div(g, city_list)
 
-            e = geo_expected(g)
-            ae_r = geo_actual_exp_ratio(g, e)
-            ae_d = geo_actual_exp_div(g, e)
+            e = geo_expected(g, city_list)
+            ae_r = geo_actual_exp_ratio(g, e, city_list)
+            ae_d = geo_actual_exp_div(g, e, city_list)
             #print "using ordering: %s" % ordering_type
             # CITY_ORDERINGS is deprecated
             #ordering = CITY_ORDERINGS[ordering_type]
@@ -864,7 +869,7 @@ class GeoGraphProcessor:
         if write_gexf:
             if filter_cities:
                 print "writing gexf for cities only"
-                gexf = geo_gexf_cities_graph(g)
+                gexf = geo_gexf_cities_graph(g, city_list)
                 write_gexf_file(gexf, in_name, ["link", 'cities'])
             elif geo_filter:
                 print "writing gexf for filtered geo area only"

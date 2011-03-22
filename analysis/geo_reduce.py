@@ -8,9 +8,9 @@ import networkx as nx
 
 from geo_graph import geo_stats, geo_cluster, geo_reduce, geo_filter_nones
 from geo_graph import GeoGraphProcessor, geo_check_for_isolated
-from geo_graph import CITY_NAMES_DIST, CITY_NAMES_STARTER
 from geo_graph import geo_box_reduce, CITIES_WORLD, CITIES_AMERICA
-from geo_graph import CITY_NAMES_STARTER, CITY_ORDERINGS_WORLD
+from geo_graph import CITY_ORDERINGS_WORLD
+from geo_graph import CITY_ORDERING_AMERICA_DIST
 
 # Default input filename - .gpk extension assumed
 DEF_INPUT = "followers"
@@ -49,16 +49,6 @@ CITY_FILTERS = {
 
 CITY_FILTER_DEF = 'world'
 
-CITY_ORDERING_AMERICA_DIST = [
-    'San Francisco',
-    'Los Angeles',
-    'Portland',
-    'Seattle',
-    'Chicago',
-    'Toronto',
-    'New York'
-]
-
 CITY_ORDERINGS_AMERICA = {
     'dist': CITY_ORDERING_AMERICA_DIST
 }
@@ -75,6 +65,9 @@ class GeoReduce:
         self.parse_args()
         options = self.options
 
+        city_list = CITY_FILTERS[self.options.city_filter]
+        city_ordering = CITY_ORDERINGS[self.options.city_filter][self.options.ordering_type]
+
         def process_fcn(g):
             print "now processing"
             input_stats = geo_stats(g)
@@ -82,10 +75,10 @@ class GeoReduce:
             geo_filter_nones(g)
             geo_check_for_isolated(g)
             filtered_stats = geo_stats(g)
-            node_map = geo_cluster(g, restrict = False, cities = [])
+            node_map = geo_cluster(g, cities = [], restrict = False)
             #r = nx.DiGraph()
             g = geo_reduce(g, node_map)
-            node_map = geo_cluster(g, restrict = False)
+            node_map = geo_cluster(g, cities = city_list, restrict = False)
             first_pass_stats = geo_stats(g)
             if self.options.filter_cities:
                 g = geo_reduce(g, node_map)
@@ -113,8 +106,8 @@ class GeoReduce:
                           geo_filter = self.options.geo_filter,
                           append = self.options.append,
                           city_filter_name = self.options.city_filter,
-                          city_list = CITY_FILTERS[self.options.city_filter],
-                          city_ordering = CITY_ORDERINGS[self.options.city_filter][self.options.ordering_type])
+                          city_list = city_list,
+                          city_ordering = city_ordering)
 
     def parse_args(self):
         opts = OptionParser()
