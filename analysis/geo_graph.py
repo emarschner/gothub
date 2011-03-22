@@ -870,7 +870,7 @@ class GeoGraphProcessor:
             if filter_cities:
                 print "writing gexf for cities only"
                 gexf = geo_gexf_cities_graph(g, city_list)
-                write_gexf_file(gexf, in_name, ["link", 'cities'])
+                write_gexf_file(gexf, in_name, ["link", 'cityfilter', city_filter_name])
             elif geo_filter:
                 print "writing gexf for filtered geo area only"
                 gexf = geo_gexf_graph(g)
