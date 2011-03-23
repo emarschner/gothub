@@ -8,9 +8,9 @@ import networkx as nx
 
 from geo_graph import geo_stats, geo_cluster, geo_reduce, geo_filter_nones
 from geo_graph import GeoGraphProcessor, geo_check_for_isolated
-from geo_graph import geo_box_reduce, CITIES_WORLD, CITIES_AMERICA
+from geo_graph import geo_box_reduce, CITIES_WORLD, CITIES_AMERICA, CITIES_WESTCOAST
 from geo_graph import CITY_ORDERINGS_WORLD
-from geo_graph import CITY_ORDERING_AMERICA_DIST
+from geo_graph import CITY_ORDERING_AMERICA_DIST, CITY_ORDERING_WESTCOAST_DIST
 
 # Default input filename - .gpk extension assumed
 DEF_INPUT = "followers"
@@ -38,13 +38,15 @@ GEO_FILTERS = {
     'cali': [[32.81, -125.0], [42.0, -114.0]],
     'america': [[25.0, -125.0], [50.0, -65.0]],
     'europe': [[33.0, 40.0], [71.55, 71.55]],
-    'australia': [[-48.0, 113.1], [-10.5, 179.0]]
+    'australia': [[-48.0, 113.1], [-10.5, 179.0]],
+    'westcoast': [[27.29, -127.00], [50.68, -115.40]]
 }
 
 # List of tuples. Each tuple has a (lat,long) pair, name, and radius in miles.
 CITY_FILTERS = {
     'world': CITIES_WORLD,
-    'america': CITIES_AMERICA
+    'america': CITIES_AMERICA,
+    'westcoast': CITIES_WESTCOAST
 }
 
 CITY_FILTER_DEF = 'world'
@@ -53,9 +55,14 @@ CITY_ORDERINGS_AMERICA = {
     'dist': CITY_ORDERING_AMERICA_DIST
 }
 
+CITY_ORDERINGS_WESTCOAST = {
+    'dist': CITY_ORDERING_WESTCOAST_DIST
+}
+
 CITY_ORDERINGS = {
     'world': CITY_ORDERINGS_WORLD,
-    'america': CITY_ORDERINGS_AMERICA
+    'america': CITY_ORDERINGS_AMERICA,
+    'westcoast': CITY_ORDERINGS_WESTCOAST
 }
 
 

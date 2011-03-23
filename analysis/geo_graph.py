@@ -76,12 +76,24 @@ CITIES_AMERICA = [
     ((u'39.740010', u'-104.992259'), 'Denver', 100)
 ]
 
+CITIES_WESTCOAST = [
+    ((u'37.777125', u'-122.419644'), 'San Francisco', 100),
+    ((u'47.603560', u'-122.329439'), 'Seattle', 90),
+    ((u'45.511795', u'-122.675629'), 'Portland', 80),
+    ((u'34.053490', u'-118.245319'), 'Los Angeles', 60),
+    ((u'49.260440', u'-123.114034'), 'Vancouver', 100),
+    ((u'32.715695', u'-117.161719'), 'San Diego', 50),
+]
+
 # DEPRECATED!
 #CITIES = CITIES_WORLD
 
 CITY_NAMES_WORLD_STARTER = [city[1] for city in CITIES_WORLD]
 
 CITY_ORDERING_AMERICA_DIST = [city[1] for city in CITIES_AMERICA]
+
+CITY_ORDERING_WESTCOAST_DIST = [city[1] for city in CITIES_WESTCOAST]
+
 
 # City names ordered manually (& roughly) by distance to San Fran
 CITY_NAMES_WORLD_DIST = [
@@ -105,6 +117,7 @@ CITY_ORDERINGS_WORLD = {
     'starter': CITY_NAMES_WORLD_STARTER,
     'dist': CITY_NAMES_WORLD_DIST
 }
+
 
 
 def geo_edge_weight(g):
