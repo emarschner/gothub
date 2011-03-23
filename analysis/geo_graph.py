@@ -82,7 +82,28 @@ CITIES_WESTCOAST = [
     ((u'45.511795', u'-122.675629'), 'Portland', 80),
     ((u'34.053490', u'-118.245319'), 'Los Angeles', 60),
     ((u'49.260440', u'-123.114034'), 'Vancouver', 100),
-    ((u'32.715695', u'-117.161719'), 'San Diego', 50),
+    ((u'32.715695', u'-117.161719'), 'San Diego', 50)
+]
+
+CITIES_EUROPE = [
+    ((u'51.506325', u'-0.127144'), 'London', 100),
+    ((u'52.516074', u'13.376987'), 'Berlin', 85),
+    ((u'48.856930', u'2.341200'), 'Paris', 150),
+    ((u'55.756950', u'37.614975'), 'Moscow', 150),
+    #((u'52.152355', u'5.292970'), 'Netherlands', 40),
+    ((u'53.553345', u'9.992455'), 'Hamburg', 40),
+    #((u'62.198448', u'17.566220'), 'Sweden', 60),
+    ((u'59.24', u'17.40'), 'Stockholm', 200),
+    ((u'52.373120', u'4.893195'), 'Amsterdam', 90),
+    ((u'48.202548', u'16.368805'), 'Vienna', 80),
+    ((u'59.936', u'30.33'), 'St. Petersburg', 150),
+    #((u'51.918917', u'19.134295'), 'Poland', 50),
+    ((u'52.58', u'20.92'), 'Warsaw', 100),
+    #((u'41.292540', u'12.573465'), 'Italy', 60),
+    ((u'55.676310', u'12.569355'), 'Copenhagen', 100),
+    #((u'50.500990', u'4.476770'), 'Belgium', 60)
+    ((u'50.861', u'4.34'), 'Brussels', 60)
+    #((u'55.008390', u'-5.822485'), 'UK', 270) # would subsume London, but Ireland too.
 ]
 
 # DEPRECATED!
@@ -94,6 +115,7 @@ CITY_ORDERING_AMERICA_DIST = [city[1] for city in CITIES_AMERICA]
 
 CITY_ORDERING_WESTCOAST_DIST = [city[1] for city in CITIES_WESTCOAST]
 
+CITY_ORDERING_EUROPE_DIST = [city[1] for city in CITIES_EUROPE]
 
 # City names ordered manually (& roughly) by distance to San Fran
 CITY_NAMES_WORLD_DIST = [
