@@ -134,6 +134,13 @@ def process_loc_str(matching):
         x = m['sha1']
         #x = str(m['sha1']) + str(m['lat'])
 
+def process_loc_str_err(matching):
+    for m in matching:
+        if 'location' in m:
+            print "%s, %s, %s, %s" % (m['author'], m['location'], m['lat'], m['long'])
+        #x = m['sha1']
+        #x = str(m['sha1']) + str(m['lat'])
+
 def process_loc_list(matching):
     shas = []
     for m in matching:
@@ -156,7 +163,14 @@ def process_loc_gettimes(matching):
     print "total commits matched: %i" % i
 
 # Benchmark suite for paper inclusion:
-run_queries(time_ranges, time_match, process_loc_str)
+#run_queries(time_ranges, time_match, process_loc_str)
+
+# Query to identify Yahoo bug
+geo_box_ranges2 = [
+    ['whoknows', [[-60, -20], [-30, 0]]]
+]
+run_queries(geo_box_ranges2, geo_split_box_match, process_loc_str_err)
+
 #run_queries(geo_box_ranges, geo_split_box_match, process_loc_str)
 #run_queries(project_ranges, project_match, process_loc_str)
 #run_queries(combined_ranges, combined_match, process_loc_str)
