@@ -361,7 +361,7 @@ def geo_gexf_graph(g, max_edges = None):
             edge_weight = 0
         #print src_node, dst_node
         #print g.node[src_node]
-        if 0:
+        if True:
             src_name = list(g.node[src_node]['location'])[0]
             dst_name = list(g.node[dst_node]['location'])[0]
         else:
