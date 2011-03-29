@@ -55,7 +55,9 @@ class GeoGraph(nx.DiGraph):
         else:
             print " reading input graph from %s" % filename
             file = open(filename, 'r')
-            return pickle.load(file)
+            g = pickle.load(file)
+            g.remove_nones()
+            return g
 
     @staticmethod
     def get_key(data):
