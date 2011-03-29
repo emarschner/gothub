@@ -236,25 +236,15 @@ class GeoGraph(nx.DiGraph):
         if self.has_node((None, None)):
             self.remove_node((None, None))
 
-    def write_matrix_pv_js(self, filename, ordering = None, max = 10, ext = '.js', verbose = False):
+    def write_matrix_pv_js(self, filename, ordering = None, n = 10, ext = '.js', verbose = False):
         '''Write JSON file suitable for use in Protovis matrix view.
 
         filename: complete path to write, minus extension
         ordering: optional list of keys
-        max: output only the N keys with the highest total degree
+        n: output only the N keys with the highest total degree
         ext: filename extension
         '''
         if not ordering:
-            #for now, create map of keys to names
-            # location_totals is a list of ((src,dst), total in/out pairs)
-            location_totals = []
-            for loc in self.nodes():
-                total = self.degree(loc)
-                location_totals.append((loc, total))
-            location_totals = sorted(location_totals, key = itemgetter(1), reverse = True)
-            if verbose:
-                for loc, total in location_totals:
-                    print "%s: %s" % (loc, total)
 
             # FIXME:
             # extract the most-popular name from each key's locations dict
@@ -264,9 +254,23 @@ class GeoGraph(nx.DiGraph):
             for key in self.nodes():
                 locations[key] = self.node[key]["locations"].keys()[0]
 
+            #for now, create map of keys to names
+            # location_totals is a list of ((src,dst), total in/out pairs)
+            location_totals = []
+            for loc in self.nodes():
+                total = self.degree(loc)
+                location_totals.append((loc, total))
+            location_totals = sorted(location_totals, key = itemgetter(1), reverse = True)
+            if verbose:
+                for i, (loc, total) in enumerate(location_totals):
+                    #locs_to_print = locations[loc]
+                    locs_to_print = self.node[loc]["locations"].keys()
+                    print "%s (%s): %s" % (loc, total, locs_to_print)
+                    if i == n - 1: print "------------------------"
+
             # Chop ordering:
             ordering = [loc for loc, total in location_totals]
-            ordering = ordering[:max]
+            ordering = ordering[:n]
 
         text = self.matrix_pv_js(ordering, locations)
         json_out = open(filename + ext, 'w')
