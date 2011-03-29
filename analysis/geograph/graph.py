@@ -202,6 +202,11 @@ class GeoGraph(nx.DiGraph):
         print "max edge weight: %i" % max_edge_weight
         return c
 
+    def remove_nones(self):
+        '''Filter out nodes at (None, None) plus links to there.'''
+        if self.has_node((None, None)):
+            self.remove_node((None, None))
+
     def write_matrix_pv_js(self, filename, ordering = None, max = 10, ext = '.js', verbose = False):
         '''Write JSON file suitable for use in Protovis matrix view.
 
