@@ -79,6 +79,20 @@ class GeoGraph(nx.DiGraph):
             self.node[key]["weight"] += 1
         locations[location].add(name)
 
+    def copy_node(self, g, key):
+        """Add an already existing geo node from another GeoGraph.
+
+        Overwrites any existing data.
+
+        g: other GeoGraph
+        key: key to copy
+        """
+        if not self.has_node(key):
+            self.add_node(key)
+
+        self.node[key]["weight"] = g.node[key]["weight"]
+        self.node[key]["locations"] = g.node[key]["locations"]
+
     def add_geo_node(self, data):
         key = self.get_key(data)
 
@@ -91,6 +105,19 @@ class GeoGraph(nx.DiGraph):
         name = data["name"]
         location = data["location"]
         self.add_name_location_data(key, name, location)
+
+    def copy_edge(self, g, src, dst):
+        """Add an already existing geo edge from another GeoGraph.
+
+        Overwrites any existing data.
+
+        g: other GeoGraph
+        src, dst: keys to copy
+        """
+        if not self.has_edge(src, dst):
+            self.add_edge(src, dst)
+
+        self[src][dst]["weight"] = g[src][dst]["weight"]
 
     def add_geo_edge(self, src_data, dst_data):
         src_key = self.get_key(src_data)
@@ -290,3 +317,48 @@ class GeoGraph(nx.DiGraph):
         s = 'var data = ' + json.dumps(matrix_data)
 
         return s
+
+    @staticmethod
+    def in_geo_range(node, box):
+        '''Return true if node is in box.
+
+        node: lat/long pair
+        box: array of lat/long pairs
+        '''
+        min_lat = float(box[0][0])
+        max_lat = float(box[1][0])
+        min_long = float(box[0][1])
+        max_long = float(box[1][1])
+        lat = float(node[0])
+        long = float(node[1])
+        lat_in_range = (lat > min_lat) and (lat < max_lat)
+        long_in_range = (long > min_long) and (long < max_long)
+        if lat_in_range and long_in_range:
+            return True
+        else:
+            return False
+
+    def geo_box_filter(self, box, verbose = False):
+        '''Return a new GeoGraph filtered to the specified geo box
+
+        geo_filter_box: array of lat/long pairs.
+        '''
+        if verbose:
+            print "geo box: %s" % box
+
+        r = GeoGraph()
+
+        # Remove edges not fully within bounding box.
+        edges_saved = 0
+        for src, dst in self.edges_iter():
+            if verbose: print "considering edge: %s, %s" % (src, dst)
+            if self.in_geo_range(src, box) and self.in_geo_range(dst, box):
+                print "\tadding edge: %s" % [src, dst]
+                r.copy_node(self, src)
+                r.copy_node(self, dst)
+                r.copy_edge(self, src, dst)
+
+                edges_saved += 1
+
+        print "Saved %i edges." % edges_saved
+        return r
