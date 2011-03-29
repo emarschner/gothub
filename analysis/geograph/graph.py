@@ -201,3 +201,83 @@ class GeoGraph(nx.DiGraph):
         print "good_edges: %i" % good_edges
         print "max edge weight: %i" % max_edge_weight
         return c
+
+    def write_matrix_pv_js(self, filename, ordering = None, max = 10, ext = '.js', verbose = False):
+        '''Write JSON file suitable for use in Protovis matrix view.
+
+        filename: complete path to write, minus extension
+        ordering: optional list of keys
+        max: output only the N keys with the highest total degree
+        ext: filename extension
+        '''
+        if not ordering:
+            #for now, create map of keys to names
+            # location_totals is a list of ((src,dst), total in/out pairs)
+            location_totals = []
+            for loc in self.nodes():
+                total = self.degree(loc)
+                location_totals.append((loc, total))
+            print "location totals before: ", location_totals
+            location_totals = sorted(location_totals, key = itemgetter(1), reverse = True)
+            for loc, total in location_totals:
+                print "%s: %s" % (loc, total)
+
+            # FIXME:
+            # extract the most-popular name from each key's locations dict
+            # For now, just use the first name for that key we come across.
+            # locations[key] = location string name
+            locations = {}
+            if verbose:
+                for key in self.nodes():
+                    locations[key] = self.node[key]["locations"].keys()[0]
+            ordering = [loc for loc, total in location_totals]
+
+            # Chop ordering:
+            ordering = ordering[:max]
+
+        text = self.matrix_pv_js(ordering, locations)
+        json_out = open(filename + ext, 'w')
+        json_out.write(text)
+
+    def matrix_pv_js(self, ordering, locations):
+        '''Output JSON string suitable for use in Protovis matrix view.
+
+        ordering: list of keys
+        locations: map of key to location names
+
+        The data looks like this:
+
+        var data = {
+            nodes:[
+                {nodeName:"Myriel", group:1},
+                {nodeName:"Napoleon", group:1},
+                ...
+            ],
+            links:[
+                {source:1, target:0, value:1},
+                {source:2, target:0, value:8},
+                ...
+            ]
+        };
+        '''
+        nodes = [{'nodeName': locations[loc], 'group': 1} for loc in ordering]
+        loc_indices = {}
+        for i, loc in enumerate(ordering):
+            loc_indices[loc] = i
+        links = []
+        for src in ordering:
+            for dst in ordering:
+                src_index = loc_indices[src]
+                dst_index = loc_indices[dst]
+                if self.has_edge(src, dst):
+                    weight = self[src][dst]["weight"]
+                else:
+                    weight = 0
+                links.append({'source': src_index,
+                              'target': dst_index,
+                              'value': weight
+                })
+        matrix_data = {'nodes': nodes, 'links': links}
+        s = 'var data = ' + json.dumps(matrix_data)
+
+        return s

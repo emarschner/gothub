@@ -57,5 +57,5 @@ Create, geocode, and geo-reduce the full social graph:
     --input "../../stanford-geo-viz/followers.csv" \
     --write \
     -m 0 --print_interval 1000000
-geograph/gg_create_from_social.py --input followers
+geograph/gg_from_social.py --input followers
 geograph/gg_export.py --input followers
