@@ -48,3 +48,14 @@ done;
 
 Generate single GEXF output, reduced to bounding box:
 ./geo_reduce.py --input followers --no-filter-cities --geo_filter australia
+
+##############################################################################
+New-style graph creation examples:
+
+Create, geocode, and geo-reduce the full social graph:
+./graph_util.py --input_type links \
+    --input "../../stanford-geo-viz/followers.csv" \
+    --write \
+    -m 0 --print_interval 1000000
+geograph/gg_create_from_social.py --input followers
+geograph/gg_export.py --input followers
