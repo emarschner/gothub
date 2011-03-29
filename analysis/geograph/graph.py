@@ -222,22 +222,21 @@ class GeoGraph(nx.DiGraph):
             for loc in self.nodes():
                 total = self.degree(loc)
                 location_totals.append((loc, total))
-            print "location totals before: ", location_totals
             location_totals = sorted(location_totals, key = itemgetter(1), reverse = True)
-            for loc, total in location_totals:
-                print "%s: %s" % (loc, total)
+            if verbose:
+                for loc, total in location_totals:
+                    print "%s: %s" % (loc, total)
 
             # FIXME:
             # extract the most-popular name from each key's locations dict
             # For now, just use the first name for that key we come across.
             # locations[key] = location string name
             locations = {}
-            if verbose:
-                for key in self.nodes():
-                    locations[key] = self.node[key]["locations"].keys()[0]
-            ordering = [loc for loc, total in location_totals]
+            for key in self.nodes():
+                locations[key] = self.node[key]["locations"].keys()[0]
 
             # Chop ordering:
+            ordering = [loc for loc, total in location_totals]
             ordering = ordering[:max]
 
         text = self.matrix_pv_js(ordering, locations)
@@ -265,7 +264,10 @@ class GeoGraph(nx.DiGraph):
             ]
         };
         '''
-        nodes = [{'nodeName': locations[loc], 'group': 1} for loc in ordering]
+        nodes = []
+        for loc in ordering:
+            nodes.append({'nodeName': locations[loc], 'group': 1})
+
         loc_indices = {}
         for i, loc in enumerate(ordering):
             loc_indices[loc] = i
