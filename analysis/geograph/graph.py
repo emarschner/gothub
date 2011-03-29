@@ -357,7 +357,6 @@ class GeoGraph(nx.DiGraph):
         for src, dst in self.edges_iter():
             if verbose: print "considering edge: %s, %s" % (src, dst)
             if self.in_geo_range(src, box) and self.in_geo_range(dst, box):
-                print "\tadding edge: %s" % [src, dst]
                 r.copy_node(self, src)
                 r.copy_node(self, dst)
                 r.copy_edge(self, src, dst)
