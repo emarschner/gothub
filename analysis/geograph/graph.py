@@ -129,6 +129,41 @@ class GeoGraph(nx.DiGraph):
 
         self[src_key][dst_key]["weight"] += 1
 
+    def aggregate(self, old, new):
+        """Aggregate an original location into the new one."""
+        if not self.has_node(new):
+            raise Exception("can't merge into non-existent node")
+
+        # merge node
+        self.node[new]["weight"] += self.node[old]["weight"]
+        old_locations = self.node[old]["locations"]
+        new_locations = self.node[new]["locations"]
+        for old_location, old_users in old_locations.iteritems():
+            if old_location not in new_locations:
+                new_locations[old_location] = set([])
+            # take union of new and old sets
+            new_locations[old_location] |= old_users
+
+        # update edges.
+        for src, dst in self.in_edges(old):
+            # merge in new edge, delete old
+            if not self.has_edge(src, new):
+                self.add_edge(src, new)
+                self[src][new]["weight"] = 0
+            self[src][new]["weight"] += self[src][dst]["weight"]
+            self.remove_edge(src, dst)
+
+        for src, dst in self.out_edges(old):
+            # merge in new edge, delete old
+            if not self.has_edge(new, dst):
+                self.add_edge(new, dst)
+                self[new][dst]["weight"] = 0
+            self[new][dst]["weight"] += self[src][dst]["weight"]
+            self.remove_edge(src, dst)
+
+        # delete old node
+        self.remove_node(old)
+
     def stats(self, sep = SEP, verbose = False):
         """Compute stats for a geo-graph."""
         i = 0
