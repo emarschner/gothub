@@ -329,13 +329,17 @@ class GeoGraph(nx.DiGraph):
                 edge_total += total
                 location_totals.append((loc, total))
             location_totals = sorted(location_totals, key = itemgetter(1), reverse = True)
-            print "\tedge_total: %i" % edge_total
+            print "\tedge_total used for ranking w/sort by %s: %i" % (SORT_BY, edge_total)
             if verbose:
+                print "key, in / out / self, location string"
                 for i, (loc, total) in enumerate(location_totals):
                     locs_to_print = locations[loc]
                     #locs_to_print = self.node[loc]["locations"].keys()
                     #locs_to_print = self.node[loc]["locations"].keys()[0]
-                    print "%s (%s): %s" % (loc, total, locs_to_print)
+                    selfedges = self.edge[loc][loc]["weight"] if self.has_edge(loc, loc) else 0
+                    succ = self.successors(loc)
+                    outtotal = sum([self[loc][node]["weight"] for node in succ if node != loc])
+                    print "%s (%s / %s / %s): %s" % (loc, total, outtotal, selfedges, locs_to_print)
                     if i == n - 1: print "------------------------"
 
             # Chop ordering:
