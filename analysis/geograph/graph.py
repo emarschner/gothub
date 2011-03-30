@@ -200,8 +200,8 @@ class GeoGraph(nx.DiGraph):
 
             # FIXME: ugly hack to avoid writing a function to find the most
             # popular in a dict.
-            src_name = self.node[src_node]['locations'].keys()[0]
-            dst_name = self.node[dst_node]['locations'].keys()[0]
+            src_name = self._most_popular_location(src_node)
+            dst_name = self._most_popular_location(dst_node)
 
             if src_name:
                 good_names += 1
@@ -236,6 +236,16 @@ class GeoGraph(nx.DiGraph):
         if self.has_node((None, None)):
             self.remove_node((None, None))
 
+    def _most_popular_location(self, key):
+        """Returns the most popular location string corresponding to a key."""
+        # location_strings = array of (location string, count) pairs
+        location_strings = []
+        for location, users in self.node[key]["locations"].iteritems():
+            location_strings.append((location, len(users)))
+        location_strings = sorted(location_strings, key = itemgetter(1), reverse = True)
+        top_pair = location_strings[0]
+        return top_pair[0]
+
     def write_matrix_pv_js(self, filename, ordering = None, n = 10, ext = '.js', verbose = False):
         '''Write JSON file suitable for use in Protovis matrix view.
 
@@ -244,6 +254,12 @@ class GeoGraph(nx.DiGraph):
         n: output only the N keys with the highest total degree
         ext: filename extension
         '''
+        # Sort by..
+        # degree: total degree
+        # inweight: total in weight, include selfedges
+        # inweight-noself: total in weight, ignore selfedges
+        SORT_BY = 'inweight-noself' # degree, inweight, inweight-noself...
+
         if not ordering:
 
             # FIXME:
@@ -252,19 +268,38 @@ class GeoGraph(nx.DiGraph):
             # locations[key] = location string name
             locations = {}
             for key in self.nodes():
-                locations[key] = self.node[key]["locations"].keys()[0]
+                #locations[key] = self.node[key]["locations"].keys()[0]
+                locations[key] = self._most_popular_location(key)
 
             #for now, create map of keys to names
-            # location_totals is a list of ((src,dst), total in/out pairs)
+            # location_totals is a list of ((src,dst), some value)
             location_totals = []
+            edge_total = 0
             for loc in self.nodes():
-                total = self.degree(loc)
+                if SORT_BY == 'degree':
+                    total = self.degree(loc)
+                elif SORT_BY in ('inweight', 'inweight-noself'):
+                    pred = self.predecessors(loc)
+                    succ = self.successors(loc)
+
+                    total = 0
+                    # For now, only consider incoming edges ("influence") for ranking.
+                    # This may not be right; alternately, could use total of in and out.
+                    # To use both, uncomment line below
+                    #total = sum([self[loc][node]["weight"] for node in succ if node != loc])
+                    total += sum([self[node][loc]["weight"] for node in pred if node != loc])
+                    # selfedges are special case; don't want to double-count these
+                    if (SORT_BY == 'inweight') and self.has_edge(loc, loc):
+                        total += self[loc][loc]["weight"]
+                edge_total += total
                 location_totals.append((loc, total))
             location_totals = sorted(location_totals, key = itemgetter(1), reverse = True)
+            print "\tedge_total: %i" % edge_total
             if verbose:
                 for i, (loc, total) in enumerate(location_totals):
-                    #locs_to_print = locations[loc]
-                    locs_to_print = self.node[loc]["locations"].keys()
+                    locs_to_print = locations[loc]
+                    #locs_to_print = self.node[loc]["locations"].keys()
+                    #locs_to_print = self.node[loc]["locations"].keys()[0]
                     print "%s (%s): %s" % (loc, total, locs_to_print)
                     if i == n - 1: print "------------------------"
 
