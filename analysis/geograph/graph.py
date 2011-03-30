@@ -341,6 +341,7 @@ class GeoGraph(nx.DiGraph):
                     outtotal = sum([self[loc][node]["weight"] for node in succ if node != loc])
                     print "%s (%s / %s / %s): %s" % (loc, total, outtotal, selfedges, locs_to_print)
                     if i == n - 1: print "------------------------"
+                    if i == 2 * n: break
 
             # Chop ordering:
             ordering = [loc for loc, total in location_totals]
