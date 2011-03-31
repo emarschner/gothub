@@ -297,6 +297,100 @@ class GeoGraph(nx.DiGraph):
                 self.aggregate(key, (None, None))
         self.remove_nones()
 
+    def modify_name(self, key, old, new):
+        """Replace instances of a particular location name."""
+        users = self.node[key]["locations"][old]
+        if new not in self.node[key]["locations"]:
+            self.node[key]["locations"][new] = set([])
+        self.node[key]["locations"][new] |= users
+        del self.node[key]["locations"][old]
+
+    def trim(self, n = 10, verbose = False):
+        '''Trim to specified number of edges.
+
+        Attempt to minimize the total edge weight thrown away in the process.
+
+        n: max desired output only the N keys with the highest total degree
+        ext: filename extension
+        '''
+        # Sort by..
+        # degree: total degree
+        # inweight: total in weight, include selfedges
+        # inweight-noself: total in weight, ignore selfedges
+        SORT_BY = 'inweight-noself' # degree, inweight, inweight-noself...
+
+        # FIXME:
+        # extract the most-popular name from each key's locations dict
+        # For now, just use the first name for that key we come across.
+        # locations[key] = location string name
+        locations = {}
+        for key in self.nodes():
+            #locations[key] = self.node[key]["locations"].keys()[0]
+            locations[key] = self._most_popular_location(key)
+
+        #for now, create map of keys to names
+        # location_totals is a list of ((src,dst), some value)
+        location_totals = []
+        edge_total = 0
+        for loc in self.nodes():
+            if SORT_BY == 'degree':
+                total = self.degree(loc)
+            elif SORT_BY in ('inweight', 'inweight-noself'):
+                pred = self.predecessors(loc)
+                succ = self.successors(loc)
+
+                total = 0
+                # For now, only consider incoming edges ("influence") for ranking.
+                # This may not be right; alternately, could use total of in and out.
+                # To use both, uncomment line below
+                #total = sum([self[loc][node]["weight"] for node in succ if node != loc])
+                total += sum([self[node][loc]["weight"] for node in pred if node != loc])
+                # selfedges are special case; don't want to double-count these
+                if (SORT_BY == 'inweight') and self.has_edge(loc, loc):
+                    total += self[loc][loc]["weight"]
+            edge_total += total
+            location_totals.append((loc, total))
+        location_totals = sorted(location_totals, key = itemgetter(1))
+        print "\tedge_total used for ranking w/sort by %s: %i" % (SORT_BY, edge_total)
+        if verbose:
+            print "key, in / out / self, location string"
+            for i, (loc, total) in enumerate(location_totals):
+                locs_to_print = locations[loc]
+                #locs_to_print = self.node[loc]["locations"].keys()
+                #locs_to_print = self.node[loc]["locations"].keys()[0]
+                selfedges = self.edge[loc][loc]["weight"] if self.has_edge(loc, loc) else 0
+                succ = self.successors(loc)
+                outtotal = sum([self[loc][node]["weight"] for node in succ if node != loc])
+                print "%s (%s / %s / %s): %s" % (loc, total, outtotal, selfedges, locs_to_print)
+                if i == n - 1: print "------------------------"
+                if i == 2 * n: break
+
+        # Chop ordering:
+        ordering = [loc for loc, total in location_totals]
+        #ordering = ordering[:n]
+
+        # Compute starting # edges
+        edges = self.number_of_edges()
+        if edges < n:
+            raise Exception("edges_start > n!")
+
+        for key in ordering:
+            # remove key
+            edges_rem = self.degree(key)
+            print "removing %s: %s, %s edges" % (key, self._most_popular_location(key), edges_rem)
+            self.aggregate(key, (None, None))
+            self.remove_nones()
+
+            # see if we've hit the target yet.
+            edges -= edges_rem
+            if edges < n:
+                print "exiting with %i edges" % edges
+                break
+
+            print "now at %i edges total" % edges
+
+        print "exited with %i edges" % edges
+
 
     def write_matrix_pv_js(self, filename, ordering = None, n = 10, ext = '.js', verbose = False):
         '''Write JSON file suitable for use in Protovis matrix view.
