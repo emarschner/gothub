@@ -23,6 +23,10 @@ SEP = "\t"  # default separator
 # Add edges only when both nodes have valid locations
 VALID_LOCATIONS_ONLY = True
 
+# This ugly hack only left in to generate a matrix diag matching a previously
+# generated image.  DO NOT USE!
+USE_ORIGINAL_WRONG_NAMES = False
+
 
 class GeoGraph(nx.DiGraph):
     """GeoGraph: a directed, weighted graph with a geographic embedding.
@@ -132,7 +136,9 @@ class GeoGraph(nx.DiGraph):
     def aggregate(self, old, new):
         """Aggregate an original location into the new one."""
         if not self.has_node(new):
-            raise Exception("can't merge into non-existent node")
+            self.add_node(new)
+            self.node[new]["weight"] = 0
+            self.node[new]["locations"] = {}
 
         # merge node
         self.node[new]["weight"] += self.node[old]["weight"]
@@ -233,10 +239,12 @@ class GeoGraph(nx.DiGraph):
             else:
                 edge_weight = 0
 
-            # FIXME: ugly hack to avoid writing a function to find the most
-            # popular in a dict.
-            src_name = self._most_popular_location(src_node)
-            dst_name = self._most_popular_location(dst_node)
+            if USE_ORIGINAL_WRONG_NAMES:
+                src_name = self.node[src_node]['locations'].keys()[0]
+                dst_name = self.node[dst_node]['locations'].keys()[0]
+            else:
+                src_name = self._most_popular_location(src_node)
+                dst_name = self._most_popular_location(dst_node)
 
             if src_name:
                 good_names += 1
@@ -280,6 +288,15 @@ class GeoGraph(nx.DiGraph):
         location_strings = sorted(location_strings, key = itemgetter(1), reverse = True)
         top_pair = location_strings[0]
         return top_pair[0]
+
+    def remove_none_locations(self):
+        """ONLY left in to help generate a matching to an earlier, broken graph."""
+        # aggregate to nothing, then remove.
+        for key in self.nodes():
+            if list(self.node[key]['locations'].keys())[0] == None:
+                self.aggregate(key, (None, None))
+        self.remove_nones()
+
 
     def write_matrix_pv_js(self, filename, ordering = None, n = 10, ext = '.js', verbose = False):
         '''Write JSON file suitable for use in Protovis matrix view.
