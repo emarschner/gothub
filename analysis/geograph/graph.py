@@ -406,16 +406,13 @@ class GeoGraph(nx.DiGraph):
         # inweight-noself: total in weight, ignore selfedges
         SORT_BY = 'inweight-noself' # degree, inweight, inweight-noself...
 
-        if not ordering:
+        # locations[key] = location string name
+        locations = {}
+        for key in self.nodes():
+            #locations[key] = self.node[key]["locations"].keys()[0]
+            locations[key] = self._most_popular_location(key)
 
-            # FIXME:
-            # extract the most-popular name from each key's locations dict
-            # For now, just use the first name for that key we come across.
-            # locations[key] = location string name
-            locations = {}
-            for key in self.nodes():
-                #locations[key] = self.node[key]["locations"].keys()[0]
-                locations[key] = self._most_popular_location(key)
+        if not ordering:
 
             #for now, create map of keys to names
             # location_totals is a list of ((src,dst), some value)

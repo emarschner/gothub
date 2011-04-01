@@ -4,7 +4,7 @@
 // scaleFactor: 1 = saturate only at max; 10 = saturate at 1/10 of max.
 // There's generally an outlier, so increasing to 2, 3, ... so that a few
 // values saturate improves low-end resolution.
-var scaleFactor = 20; //2.95 for bayarea_nosf, 20 for westcoast
+var scaleFactor = 2.95 //2.95 for bayarea_nosf, 20 for westcoast
 
 // metric_type:  one in ['seq', 'div'] for sequential or divergent.
 var metric_type = 'seq';
