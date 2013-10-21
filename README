@@ -1,8 +1,0 @@
-/Real/ doc forthcoming. If you need to know, NOW, get in touch: emarschner@gmail.com
-
-Notes
-=====
-
-- To run the scripts so that they start over when finished (potentially with a delay), run:
-
-  while true; do ./<script-name>; echo "<finished-message>"; sleep <delay-seconds>; done
